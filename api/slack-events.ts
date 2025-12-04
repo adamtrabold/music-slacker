@@ -5,6 +5,7 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import { Readable } from 'stream';
 import {
   extractMusicLink,
   identifyMusicService,
@@ -24,13 +25,6 @@ import {
   sanitizeMetadata,
 } from '../src/services/searchUrlGenerator';
 
-// Disable body parsing for proper Slack signature verification
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 // Initialize Slack client with bot token
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN!;
 const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET!;
@@ -43,15 +37,14 @@ if (SLACK_BOT_TOKEN) {
  * Parse raw body from request
  */
 async function getRawBody(req: VercelRequest): Promise<string> {
-  return new Promise((resolve) => {
-    let data = '';
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      resolve(data);
-    });
-  });
+  const chunks: Buffer[] = [];
+  const readable = req as unknown as Readable;
+  
+  for await (const chunk of readable) {
+    chunks.push(Buffer.from(chunk));
+  }
+  
+  return Buffer.concat(chunks).toString('utf-8');
 }
 
 /**
@@ -106,45 +99,51 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // Only accept POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  // Get raw body for signature verification
-  const rawBody = await getRawBody(req);
-  const body = JSON.parse(rawBody);
-
-  // Verify request is from Slack
-  if (!(await verifySlackRequest(req, rawBody))) {
-    console.error('Invalid Slack signature');
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-
-  const { type, challenge, event } = body;
-
-  // Handle URL verification challenge
-  if (type === 'url_verification') {
-    return res.status(200).json({ challenge });
-  }
-
-  // Handle event callbacks
-  if (type === 'event_callback') {
-    // Respond quickly to Slack to avoid timeout
-    res.status(200).json({ ok: true });
-
-    // Process the event asynchronously
-    try {
-      await processEvent(event);
-    } catch (error) {
-      console.error('Error processing event:', error);
+  try {
+    // Only accept POST requests
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    return;
-  }
+    // Get raw body for signature verification
+    const rawBody = await getRawBody(req);
+    const body = JSON.parse(rawBody);
 
-  // Unknown event type
-  return res.status(400).json({ error: 'Unknown event type' });
+    // Verify request is from Slack
+    if (!(await verifySlackRequest(req, rawBody))) {
+      console.error('Invalid Slack signature');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    const { type, challenge, event } = body;
+
+    // Handle URL verification challenge
+    if (type === 'url_verification') {
+      console.log('✅ URL verification challenge received');
+      return res.status(200).json({ challenge });
+    }
+
+    // Handle event callbacks
+    if (type === 'event_callback') {
+      // Respond quickly to Slack to avoid timeout
+      res.status(200).json({ ok: true });
+
+      // Process the event asynchronously
+      try {
+        await processEvent(event);
+      } catch (error) {
+        console.error('Error processing event:', error);
+      }
+
+      return;
+    }
+
+    // Unknown event type
+    return res.status(400).json({ error: 'Unknown event type' });
+  } catch (error) {
+    console.error('Handler error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 /**

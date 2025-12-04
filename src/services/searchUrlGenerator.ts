@@ -19,14 +19,14 @@ export function generateQobuzSearchUrl(metadata: TrackMetadata): string | null {
   // Prefer ISRC search if available
   if (metadata.isrc) {
     const encodedIsrc = encodeURIComponent(metadata.isrc);
-    return `https://www.qobuz.com/us-en/search?q=${encodedIsrc}`;
+    return `https://play.qobuz.com/search?q=${encodedIsrc}`;
   }
 
   // Fall back to artist + title search
   if (metadata.artist && metadata.title) {
     const searchQuery = `${metadata.artist} ${metadata.title}`;
     const encodedQuery = encodeURIComponent(searchQuery);
-    return `https://www.qobuz.com/us-en/search?q=${encodedQuery}`;
+    return `https://play.qobuz.com/search?q=${encodedQuery}`;
   }
 
   // Not enough metadata to construct a search

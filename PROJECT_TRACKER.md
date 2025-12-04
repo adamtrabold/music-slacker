@@ -163,6 +163,7 @@ Building a Slack bot that automatically finds and posts music links across all s
 - ✅ **Threaded Replies:** Working as expected
 - ✅ **Cross-platform Links:** Songlink API returning links for most services
 - ✅ **Search URL Generation:** Qobuz and Bandcamp search links working
+- ✅ **Qobuz Search URL Fix:** Updated from www.qobuz.com to play.qobuz.com (fixed 404 issue)
 - ✅ **Error Handling:** Gracefully handles API timeouts and errors
 
 ### Known Issues
@@ -170,11 +171,13 @@ Building a Slack bot that automatically finds and posts music links across all s
 - Initial Songlink API timeout was too short (fixed: 8s → 15s)
 - URL extraction was capturing Slack's trailing `>` (fixed)
 - Qobuz and Bandcamp: Search URLs instead of direct links (by design - API limitation)
+- Qobuz links open in browser web player (see future enhancements)
 
 ### Resolved Issues
 - ✅ URL extraction now removes trailing `>` from Slack-wrapped URLs
 - ✅ Increased API timeout for better reliability
 - ✅ Added development mode for local testing
+- ✅ Fixed Qobuz search URL format (www.qobuz.com → play.qobuz.com)
 
 ### Future Enhancements
 - **Musicfetch API Integration** (Priority: Medium)
@@ -182,6 +185,12 @@ Building a Slack bot that automatically finds and posts music links across all s
   - Paid service but provides better user experience
   - Cost: Subscription-based pricing
   - Implementation: Swap searchUrlGenerator calls with Musicfetch API
+  
+- **Qobuz App Deep Linking** (Priority: Low)
+  - Make Qobuz links open in the Qobuz mobile/desktop app instead of browser
+  - Requires Qobuz app URL scheme research (e.g., qobuz://search?q=...)
+  - Would provide better user experience for Qobuz subscribers
+  - May not be supported by Qobuz, needs investigation
   
 - Support for Deezer, SoundCloud (already in Songlink)
 - Allow users to configure which services they want

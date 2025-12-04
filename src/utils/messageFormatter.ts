@@ -15,7 +15,10 @@ interface ServiceInfo {
  * Formats cross-platform links into a Slack message
  * Excludes the original service and formats as: "Also stream this on: [Service](url) | [Service](url)"
  * 
- * @param links - Links to various music services
+ * Note: For services not supported by Songlink (Qobuz, Bandcamp), these may be search URLs
+ * rather than direct track links, but they're formatted identically for a seamless user experience.
+ * 
+ * @param links - Links to various music services (direct links or search URLs)
  * @param originalService - The service from the original link (to exclude)
  * @returns Formatted Slack message with markdown links
  */

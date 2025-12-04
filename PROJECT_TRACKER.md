@@ -3,7 +3,7 @@
 ## Overview
 Building a Slack bot that automatically finds and posts music links across all streaming services (Spotify, Apple Music, Tidal, Qobuz, YouTube Music, Bandcamp) in a threaded reply when someone shares a music link.
 
-**Tech Stack:** Node.js/TypeScript, Vercel Serverless Functions, Songlink API, Slack Events API
+**Tech Stack:** Node.js/TypeScript, Vercel Serverless Functions, Songlink API, Search URL Generation, Slack Events API
 
 ---
 
@@ -32,14 +32,22 @@ Building a Slack bot that automatically finds and posts music links across all s
   - [x] Apple Music URL regex
   - [x] Tidal URL regex
   - [x] Qobuz URL regex
+  - [x] YouTube Music URL regex
+  - [x] Bandcamp URL regex
   - [x] Extract first music link function
   - [x] Identify service function
   
 - [x] Build Songlink API client (src/services/songlinkClient.ts)
   - [x] API request function
-  - [x] Response parser
+  - [x] Response parser with metadata extraction
   - [x] Error handling
   - [x] Rate limit handling
+  
+- [x] Build search URL generator (src/services/searchUrlGenerator.ts)
+  - [x] Qobuz search URL generation (ISRC-based)
+  - [x] Bandcamp search URL generation (artist+title)
+  - [x] Metadata sanitization
+  - [x] URL encoding
   
 - [x] Build Slack client (src/services/slackClient.ts)
   - [x] Initialize Web API client
@@ -60,6 +68,8 @@ Building a Slack bot that automatically finds and posts music links across all s
   - [x] Process message events
   - [x] Detect music links
   - [x] Call Songlink API
+  - [x] Generate search URLs for Qobuz/Bandcamp
+  - [x] Merge Songlink and search URL results
   - [x] Format and post reply
   - [x] Error handling and logging
 
@@ -151,13 +161,15 @@ Building a Slack bot that automatically finds and posts music links across all s
 - ✅ **Local Testing with ngrok:** Successful
 - ✅ **Apple Music Links:** Tested and working perfectly
 - ✅ **Threaded Replies:** Working as expected
-- ✅ **Cross-platform Links:** Songlink API returning links for all services
+- ✅ **Cross-platform Links:** Songlink API returning links for most services
+- ✅ **Search URL Generation:** Qobuz and Bandcamp search links working
 - ✅ **Error Handling:** Gracefully handles API timeouts and errors
 
 ### Known Issues
 - Slack signature verification doesn't work with ngrok (bypassed in dev mode)
 - Initial Songlink API timeout was too short (fixed: 8s → 15s)
 - URL extraction was capturing Slack's trailing `>` (fixed)
+- Qobuz and Bandcamp: Search URLs instead of direct links (by design - API limitation)
 
 ### Resolved Issues
 - ✅ URL extraction now removes trailing `>` from Slack-wrapped URLs
@@ -165,7 +177,13 @@ Building a Slack bot that automatically finds and posts music links across all s
 - ✅ Added development mode for local testing
 
 ### Future Enhancements
-- Support for Deezer, SoundCloud (Bandcamp ✅, YouTube Music ✅)
+- **Musicfetch API Integration** (Priority: Medium)
+  - Replace search URLs with direct Qobuz/Bandcamp links
+  - Paid service but provides better user experience
+  - Cost: Subscription-based pricing
+  - Implementation: Swap searchUrlGenerator calls with Musicfetch API
+  
+- Support for Deezer, SoundCloud (already in Songlink)
 - Allow users to configure which services they want
 - Analytics on which services are most popular
 - Support for multiple links in one message

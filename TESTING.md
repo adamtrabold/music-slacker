@@ -228,6 +228,54 @@ Look for:
 - [ ] Bot in multiple channels simultaneously
 - [ ] Multiple people posting links at same time
 
+## Search URL Testing (Qobuz & Bandcamp)
+
+### Test 1: Verify Qobuz Search Links
+**Input:** Post a Spotify or Apple Music link
+
+**Expected:**
+- Bot generates Qobuz search link in the response
+- Click the Qobuz link → should open Qobuz search page
+- Search results should show the correct track (or similar tracks)
+
+**Why this works:**
+- Bot uses ISRC or artist+title from Songlink metadata
+- Qobuz search is more reliable than no link at all
+
+### Test 2: Verify Bandcamp Search Links
+**Input:** Post a Spotify or Apple Music link
+
+**Expected:**
+- Bot generates Bandcamp search link in the response
+- Click the Bandcamp link → should open Bandcamp search page
+- Search results may include the track if available on Bandcamp
+
+**Note:** Not all tracks are on Bandcamp, but search provides discovery path
+
+### Test 3: Metadata Quality
+**Input:** Post link to track with special characters:
+```
+https://open.spotify.com/track/0DiWol3AO6WpXZgp0goxAV
+```
+(Song: "Don't Stop Believin'" by Journey)
+
+**Expected:**
+- Search URLs properly encode special characters
+- Apostrophes, quotes, and parentheses handled correctly
+- Search links work without errors
+
+### Test 4: ISRC-based Search (Qobuz)
+**Monitor Logs:** When bot processes a link, check that:
+- Songlink API returns ISRC in metadata
+- Qobuz search URL uses ISRC when available
+- Format: `https://www.qobuz.com/us-en/search?q=USIR20400274`
+
+### Test 5: No Metadata Edge Case
+**Theoretical:** If Songlink returns no metadata (rare)
+- Bot should handle gracefully
+- May not generate search links if no artist/title available
+- Should not crash or error
+
 ## Troubleshooting Test Failures
 
 ### Bot doesn't respond at all

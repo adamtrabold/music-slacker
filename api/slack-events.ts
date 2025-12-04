@@ -19,6 +19,10 @@ import {
   formatMusicLinksMessage,
   formatErrorMessage,
 } from '../src/utils/messageFormatter';
+import {
+  generateSearchUrls,
+  sanitizeMetadata,
+} from '../src/services/searchUrlGenerator';
 
 // Initialize Slack client with bot token
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN!;
@@ -146,10 +150,23 @@ async function processEvent(event: any): Promise<void> {
 
   try {
     // Fetch cross-platform links from Songlink
-    const links = await getCrossPlatformLinks(musicLink);
+    const result = await getCrossPlatformLinks(musicLink);
+    const { links, metadata } = result;
+
+    // Generate search URLs for Qobuz and Bandcamp if not provided by Songlink
+    const sanitizedMetadata = sanitizeMetadata(metadata);
+    const searchUrls = generateSearchUrls(sanitizedMetadata);
+
+    // Merge Songlink links with generated search URLs
+    // Only add search URLs if Songlink didn't provide them
+    const allLinks = {
+      ...links,
+      qobuz: links.qobuz || searchUrls.qobuz,
+      bandcamp: links.bandcamp || searchUrls.bandcamp,
+    };
 
     // Format the message
-    const message = formatMusicLinksMessage(links, originalService);
+    const message = formatMusicLinksMessage(allLinks, originalService);
 
     // Post threaded reply
     await postThreadedReply(channel, ts, message);
@@ -157,7 +174,7 @@ async function processEvent(event: any): Promise<void> {
     console.log('Successfully posted cross-platform links', {
       channel,
       originalService,
-      linksFound: Object.keys(links).length,
+      linksFound: Object.keys(allLinks).filter(k => allLinks[k as keyof typeof allLinks]).length,
     });
   } catch (error: any) {
     console.error('Error processing music link:', {

@@ -7,8 +7,9 @@ A Slack bot that automatically finds and posts music links across all streaming 
 When someone posts a link to a song, album, or playlist from Spotify, Apple Music, Tidal, Qobuz, YouTube Music, or Bandcamp, the bot:
 
 1. Detects the music link
-2. Finds the same content on all other streaming services
-3. Posts a threaded reply with links to all available platforms
+2. Finds the same content on all other streaming services (via Songlink API)
+3. For services not supported by Songlink (Qobuz, Bandcamp), generates smart search links
+4. Posts a threaded reply with links to all available platforms
 
 **Example:**
 
@@ -22,6 +23,7 @@ Bot replies in thread:
 ## Features
 
 - **Automatic detection** - Works with Spotify, Apple Music, Tidal, Qobuz, YouTube Music, and Bandcamp
+- **Smart linking** - Direct links via Songlink API for most services, search links for Qobuz/Bandcamp
 - **Threaded replies** - Keeps channels clean
 - **Context-aware** - Excludes the original service from replies
 - **Graceful handling** - Shows partial results if some services don't have the track
@@ -144,8 +146,9 @@ Update your Slack Event Subscriptions Request URL to your ngrok URL (e.g., `http
 
 1. **Slack sends events** to your Vercel function when messages are posted
 2. **Bot detects music links** using regex patterns for each service
-3. **Songlink/Odesli API** finds the track on all platforms
-4. **Bot posts threaded reply** with formatted links
+3. **Songlink/Odesli API** finds the track on most platforms (Spotify, Apple Music, Tidal, YouTube Music)
+4. **Search URL Generator** creates smart search links for Qobuz and Bandcamp using track metadata
+5. **Bot posts threaded reply** with formatted links to all available services
 
 ## Architecture
 
@@ -157,7 +160,9 @@ Slack Events API
 Vercel Serverless Function (api/slack-events.ts)
     ↓ (music link detected)
 Songlink/Odesli API
-    ↓ (cross-platform links)
+    ↓ (cross-platform links + metadata)
+Search URL Generator (for Qobuz/Bandcamp)
+    ↓ (merge all links)
 Slack Web API
     ↓ (post threaded reply)
 Slack Channel (thread)
@@ -190,6 +195,7 @@ Slack Channel (thread)
 
 - Some tracks may not be available on all services
 - Bot will show partial results and list missing services
+- **Note:** Qobuz and Bandcamp links are search pages (not direct track links) due to API limitations
 
 ## Project Structure
 

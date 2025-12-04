@@ -15,9 +15,9 @@ A Slack bot that automatically detects music links from 6 streaming services and
 1. Spotify ✅
 2. Apple Music ✅ (tested and working)
 3. Tidal ✅
-4. Qobuz ✅ (detection works, but Songlink API has no/limited support)
+4. Qobuz ✅ (via search URLs - see note below)
 5. YouTube Music ✅
-6. Bandcamp ✅
+6. Bandcamp ✅ (via search URLs - see note below)
 
 ### Example Flow
 
@@ -39,6 +39,7 @@ Could not find this on: Qobuz"
 **Core Functionality:**
 - [x] Music link detection (regex for all 6 services)
 - [x] Songlink/Odesli API integration
+- [x] Search URL generation for Qobuz and Bandcamp
 - [x] Slack Events API integration
 - [x] Threaded reply posting
 - [x] Context-aware (excludes original service)
@@ -72,12 +73,12 @@ Could not find this on: Qobuz"
 
 ### ⚠️ Known Issues & Limitations
 
-1. **Qobuz Limited Support**
-   - **Issue:** Songlink API doesn't return Qobuz links for most tracks
-   - **Impact:** Bot will show "Could not find this on: Qobuz" for almost all songs
-   - **Detection:** Works perfectly - bot can detect Qobuz URLs
-   - **Status:** This is a Songlink API limitation, not a bot bug
-   - **Action Needed:** Document this limitation or consider removing Qobuz from the supported list
+1. **Qobuz and Bandcamp Search Links**
+   - **Issue:** Songlink API doesn't support Qobuz or Bandcamp
+   - **Solution:** Bot generates search URLs using track metadata (artist, title, ISRC)
+   - **Impact:** Users are directed to search results pages, not direct track links
+   - **User Experience:** Seamless - links appear identical to other services
+   - **Future Enhancement:** Consider Musicfetch API for direct links (paid service)
 
 2. **Signature Verification in Development**
    - **Issue:** Slack signature verification fails with ngrok
@@ -122,6 +123,7 @@ music-slacker/
 │   ├── services/
 │   │   ├── musicLinkDetector.ts # URL detection & identification
 │   │   ├── songlinkClient.ts    # Songlink API integration
+│   │   ├── searchUrlGenerator.ts # Search URL generation for Qobuz/Bandcamp
 │   │   └── slackClient.ts       # Slack Web API wrapper
 │   └── utils/
 │       └── messageFormatter.ts  # Message formatting logic
@@ -207,12 +209,24 @@ music-slacker/
 **Purpose:** Integration with Songlink/Odesli API
 
 **Features:**
-- `getCrossPlatformLinks()` - Fetches cross-platform links
+- `getCrossPlatformLinks()` - Fetches cross-platform links and metadata
+- Returns both links and track metadata (artist, title, ISRC, album)
 - 15-second timeout
 - Error handling for API failures
 - Returns normalized link data
 
 **API Endpoint:** `https://api.song.link/v1-alpha.1/links`
+
+### `src/services/searchUrlGenerator.ts`
+**Purpose:** Generate search URLs for services not supported by Songlink
+
+**Features:**
+- `generateQobuzSearchUrl()` - Creates Qobuz search links
+- `generateBandcampSearchUrl()` - Creates Bandcamp search links
+- `generateSearchUrls()` - Generates both URLs at once
+- `sanitizeMetadata()` - Cleans metadata strings
+- Uses ISRC when available for better accuracy
+- Falls back to artist + title search
 
 ### `src/services/slackClient.ts`
 **Purpose:** Wrapper around Slack Web API
@@ -384,12 +398,19 @@ https://music.youtube.com/watch?v=rfUYuIVaZjY
 
 ### Future Enhancements (Optional)
 
-1. **Qobuz Decision:**
-   - Research if Qobuz support improved in Songlink
-   - If not, consider removing Qobuz from supported list
-   - Or add prominent note about limited availability
+1. **Musicfetch API Integration**
+   - **What:** Paid API service that provides direct Qobuz and Bandcamp links
+   - **Cost:** Subscription-based pricing
+   - **Benefit:** Direct track links instead of search pages
+   - **Implementation:** Replace search URL generation with Musicfetch API calls
+   - **Priority:** Low - search URLs work well for now
 
-2. **Add More Services:**
+2. **Qobuz Decision:**
+   - Research if Qobuz support improved in Songlink
+   - If not, current search URL implementation is working well
+   - Or add prominent note about search-based links
+
+3. **Add More Services:**
    - Deezer (Songlink supports it)
    - SoundCloud (Songlink supports it)
    - Amazon Music (Songlink supports it)

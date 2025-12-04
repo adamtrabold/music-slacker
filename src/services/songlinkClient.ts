@@ -37,14 +37,26 @@ export interface CrossPlatformLinks {
   bandcamp?: string;
 }
 
+export interface TrackMetadata {
+  artist?: string;
+  title?: string;
+  isrc?: string;
+  album?: string;
+}
+
+export interface CrossPlatformResult {
+  links: CrossPlatformLinks;
+  metadata: TrackMetadata;
+}
+
 /**
  * Fetches cross-platform links for a given music URL
  * @param musicUrl - The original music service URL
- * @returns Object containing links to the same content on other platforms
+ * @returns Object containing links and metadata about the track
  */
 export async function getCrossPlatformLinks(
   musicUrl: string
-): Promise<CrossPlatformLinks> {
+): Promise<CrossPlatformResult> {
   try {
     const response = await axios.get<SonglinkResponse>(SONGLINK_API_URL, {
       params: {
@@ -54,10 +66,10 @@ export async function getCrossPlatformLinks(
       timeout: 15000, // 15 second timeout
     });
 
-    const { linksByPlatform } = response.data;
+    const { linksByPlatform, entitiesByUniqueId } = response.data;
 
     // Extract just the URLs we care about
-    return {
+    const links: CrossPlatformLinks = {
       spotify: linksByPlatform.spotify?.url,
       appleMusic: linksByPlatform.appleMusic?.url,
       tidal: linksByPlatform.tidal?.url,
@@ -65,11 +77,28 @@ export async function getCrossPlatformLinks(
       youtubeMusic: linksByPlatform.youtubeMusic?.url,
       bandcamp: linksByPlatform.bandcamp?.url,
     };
+
+    // Extract metadata from the first available entity
+    const metadata: TrackMetadata = {};
+    if (entitiesByUniqueId) {
+      const firstEntity = Object.values(entitiesByUniqueId)[0] as any;
+      if (firstEntity) {
+        metadata.title = firstEntity.title;
+        metadata.artist = firstEntity.artistName;
+        metadata.isrc = firstEntity.isrc;
+        metadata.album = firstEntity.albumName;
+      }
+    }
+
+    return {
+      links,
+      metadata,
+    };
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 404) {
         console.error('Songlink: Music not found', { musicUrl });
-        return {}; // No matches found
+        return { links: {}, metadata: {} }; // No matches found
       }
       if (error.response?.status === 429) {
         console.error('Songlink: Rate limit exceeded');

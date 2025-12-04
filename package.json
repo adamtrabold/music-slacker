@@ -1,0 +1,34 @@
+{
+  "name": "music-slacker",
+  "version": "1.0.0",
+  "description": "Slack bot that finds music links across all streaming services",
+  "main": "api/slack-events.ts",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc",
+    "deploy": "vercel --prod",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "slack",
+    "bot",
+    "music",
+    "spotify",
+    "apple-music",
+    "tidal",
+    "qobuz"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/web-api": "^7.0.0",
+    "@slack/bolt": "^3.17.0",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vercel/node": "^3.0.0",
+    "typescript": "^5.3.0"
+  }
+}
+

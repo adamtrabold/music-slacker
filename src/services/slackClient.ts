@@ -1,0 +1,92 @@
+/**
+ * Slack Client Service
+ * Handles interactions with the Slack Web API
+ */
+
+import { WebClient } from '@slack/web-api';
+
+let slackClient: WebClient | null = null;
+
+/**
+ * Initializes the Slack Web API client
+ * @param token - Slack bot token
+ * @returns Initialized Slack WebClient
+ */
+export function initializeSlackClient(token: string): WebClient {
+  if (!slackClient) {
+    slackClient = new WebClient(token);
+  }
+  return slackClient;
+}
+
+/**
+ * Gets the initialized Slack client
+ * @throws Error if client not initialized
+ */
+export function getSlackClient(): WebClient {
+  if (!slackClient) {
+    throw new Error('Slack client not initialized. Call initializeSlackClient first.');
+  }
+  return slackClient;
+}
+
+/**
+ * Posts a threaded reply to a message
+ * @param channel - Channel ID where the original message was posted
+ * @param threadTs - Timestamp of the message to reply to
+ * @param text - The message text to post
+ * @returns Slack API response
+ */
+export async function postThreadedReply(
+  channel: string,
+  threadTs: string,
+  text: string
+): Promise<void> {
+  const client = getSlackClient();
+
+  try {
+    await client.chat.postMessage({
+      channel,
+      thread_ts: threadTs,
+      text,
+      unfurl_links: true, // Allow music links to unfurl in the thread
+      unfurl_media: true,
+    });
+    console.log('Successfully posted threaded reply', { channel, threadTs });
+  } catch (error: any) {
+    console.error('Error posting threaded reply:', {
+      error: error.message,
+      channel,
+      threadTs,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Adds an emoji reaction to a message
+ * @param channel - Channel ID
+ * @param timestamp - Message timestamp
+ * @param emoji - Emoji name (without colons)
+ */
+export async function addReaction(
+  channel: string,
+  timestamp: string,
+  emoji: string
+): Promise<void> {
+  const client = getSlackClient();
+
+  try {
+    await client.reactions.add({
+      channel,
+      timestamp,
+      name: emoji,
+    });
+  } catch (error: any) {
+    // Ignore if reaction already exists
+    if (error.data?.error !== 'already_reacted') {
+      console.error('Error adding reaction:', error.message);
+    }
+  }
+}
+

@@ -24,6 +24,13 @@ import {
   sanitizeMetadata,
 } from '../src/services/searchUrlGenerator';
 
+// Disable body parsing for proper Slack signature verification
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 // Initialize Slack client with bot token
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN!;
 const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET!;
@@ -33,9 +40,24 @@ if (SLACK_BOT_TOKEN) {
 }
 
 /**
+ * Parse raw body from request
+ */
+async function getRawBody(req: VercelRequest): Promise<string> {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', (chunk) => {
+      data += chunk;
+    });
+    req.on('end', () => {
+      resolve(data);
+    });
+  });
+}
+
+/**
  * Verifies that the request came from Slack
  */
-function verifySlackRequest(req: VercelRequest): boolean {
+async function verifySlackRequest(req: VercelRequest, rawBody: string): Promise<boolean> {
   // Skip signature verification in local development
   if (process.env.NODE_ENV === 'development') {
     console.log('⚠️  Skipping signature verification (development mode)');
@@ -44,7 +66,11 @@ function verifySlackRequest(req: VercelRequest): boolean {
 
   const slackSignature = req.headers['x-slack-signature'] as string;
   const timestamp = req.headers['x-slack-request-timestamp'] as string;
-  const body = JSON.stringify(req.body);
+
+  if (!slackSignature || !timestamp) {
+    console.error('Missing Slack signature or timestamp headers');
+    return false;
+  }
 
   // Prevent replay attacks (request older than 5 minutes)
   const time = Math.floor(new Date().getTime() / 1000);
@@ -54,7 +80,7 @@ function verifySlackRequest(req: VercelRequest): boolean {
   }
 
   // Verify signature
-  const sigBasestring = `v0:${timestamp}:${body}`;
+  const sigBasestring = `v0:${timestamp}:${rawBody}`;
   const mySignature =
     'v0=' +
     crypto
@@ -62,10 +88,15 @@ function verifySlackRequest(req: VercelRequest): boolean {
       .update(sigBasestring)
       .digest('hex');
 
-  return crypto.timingSafeEqual(
-    Buffer.from(mySignature),
-    Buffer.from(slackSignature)
-  );
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(mySignature),
+      Buffer.from(slackSignature)
+    );
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
 }
 
 /**
@@ -80,13 +111,17 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Get raw body for signature verification
+  const rawBody = await getRawBody(req);
+  const body = JSON.parse(rawBody);
+
   // Verify request is from Slack
-  if (!verifySlackRequest(req)) {
+  if (!(await verifySlackRequest(req, rawBody))) {
     console.error('Invalid Slack signature');
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  const { type, challenge, event } = req.body;
+  const { type, challenge, event } = body;
 
   // Handle URL verification challenge
   if (type === 'url_verification') {

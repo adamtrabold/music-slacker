@@ -5,7 +5,7 @@
   "main": "api/slack-events.ts",
   "scripts": {
     "dev": "vercel dev",
-    "build": "tsc",
+    "build": "echo 'No build needed - using Vercel serverless functions'",
     "deploy": "vercel --prod",
     "type-check": "tsc --noEmit"
   },

@@ -1,10 +1,9 @@
 {
   "functions": {
-    "api/slack-events.ts": {
+    "api/**/*.ts": {
       "memory": 1024,
       "maxDuration": 10
     }
-  },
-  "buildCommand": "npm install"
+  }
 }
 

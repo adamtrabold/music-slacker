@@ -150,7 +150,7 @@ OUTPUT:
 
 ### src/services/musicLinkDetector.ts
 **Role:** URL detection and classification
-- Regex patterns for each music service (Spotify, Apple Music, Tidal, Qobuz, YouTube Music)
+- Regex patterns for each music service (Spotify, Apple Music, Tidal, Qobuz, YouTube Music, Bandcamp)
 - Extracts URLs from message text
 - Identifies which service a URL belongs to
 

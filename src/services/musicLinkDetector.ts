@@ -9,6 +9,7 @@ export enum MusicService {
   TIDAL = 'Tidal',
   QOBUZ = 'Qobuz',
   YOUTUBE_MUSIC = 'YouTube Music',
+  BANDCAMP = 'Bandcamp',
   UNKNOWN = 'Unknown'
 }
 
@@ -21,6 +22,7 @@ const MUSIC_URL_PATTERNS = {
   [MusicService.TIDAL]: /https?:\/\/(listen\.)?tidal\.com\/(browse\/)?(track|album|playlist)\/[a-zA-Z0-9-]+/i,
   [MusicService.QOBUZ]: /https?:\/\/(open|play)\.qobuz\.com\/[a-z]+\/[^?\s]+/i,
   [MusicService.YOUTUBE_MUSIC]: /https?:\/\/music\.youtube\.com\/(watch|playlist|browse)\/[^?\s]+/i,
+  [MusicService.BANDCAMP]: /https?:\/\/[a-zA-Z0-9-]+\.bandcamp\.com\/(track|album)\/[^?\s]+/i,
 };
 
 /**

@@ -4,7 +4,7 @@ A Slack bot that automatically finds and posts music links across all streaming 
 
 ## What It Does
 
-When someone posts a link to a song, album, or playlist from Spotify, Apple Music, Tidal, Qobuz, or YouTube Music, the bot:
+When someone posts a link to a song, album, or playlist from Spotify, Apple Music, Tidal, Qobuz, YouTube Music, or Bandcamp, the bot:
 
 1. Detects the music link
 2. Finds the same content on all other streaming services
@@ -15,13 +15,13 @@ When someone posts a link to a song, album, or playlist from Spotify, Apple Musi
 Someone posts: `https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp`
 
 Bot replies in thread:
-> Also stream this on: Apple Music | Qobuz | Tidal | YouTube Music
+> Also stream this on: Apple Music | Bandcamp | Qobuz | Tidal | YouTube Music
 >
 > (Each service name is a clickable link)
 
 ## Features
 
-- **Automatic detection** - Works with Spotify, Apple Music, Tidal, Qobuz, and YouTube Music
+- **Automatic detection** - Works with Spotify, Apple Music, Tidal, Qobuz, YouTube Music, and Bandcamp
 - **Threaded replies** - Keeps channels clean
 - **Context-aware** - Excludes the original service from replies
 - **Graceful handling** - Shows partial results if some services don't have the track
@@ -119,6 +119,7 @@ Post a music link from any supported service:
 - Tidal: `https://tidal.com/browse/track/...`
 - Qobuz: `https://open.qobuz.com/album/...`
 - YouTube Music: `https://music.youtube.com/watch?v=...`
+- Bandcamp: `https://artistname.bandcamp.com/album/...`
 
 The bot should reply in a thread with links to other services!
 
@@ -229,7 +230,7 @@ music-slacker/
 
 ## Future Enhancements
 
-- Support for Deezer, SoundCloud, Bandcamp
+- Support for Deezer, SoundCloud
 - User preferences for which services to show
 - Analytics on popular tracks/services
 - Handle multiple links per message

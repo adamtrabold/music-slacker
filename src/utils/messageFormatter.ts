@@ -26,6 +26,7 @@ export function formatMusicLinksMessage(
   // Map service names to their links
   const allServices: ServiceInfo[] = [
     { name: 'Apple Music', url: links.appleMusic },
+    { name: 'Bandcamp', url: links.bandcamp },
     { name: 'Qobuz', url: links.qobuz },
     { name: 'Spotify', url: links.spotify },
     { name: 'Tidal', url: links.tidal },

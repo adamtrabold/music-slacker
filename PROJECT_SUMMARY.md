@@ -2,7 +2,7 @@
 
 ## What Was Built
 
-A fully-functional Slack bot that automatically finds and posts music links across all streaming services. When someone shares a music link from Spotify, Apple Music, Tidal, Qobuz, or YouTube Music, the bot replies in a thread with links to the same content on all other services.
+A fully-functional Slack bot that automatically finds and posts music links across all streaming services. When someone shares a music link from Spotify, Apple Music, Tidal, Qobuz, YouTube Music, or Bandcamp, the bot replies in a thread with links to the same content on all other services.
 
 ## Project Status
 
@@ -10,7 +10,7 @@ A fully-functional Slack bot that automatically finds and posts music links acro
 
 ### What's Working
 
-1. **Music Link Detection** - Identifies links from Spotify, Apple Music, Tidal, Qobuz, and YouTube Music
+1. **Music Link Detection** - Identifies links from Spotify, Apple Music, Tidal, Qobuz, YouTube Music, and Bandcamp
 2. **Cross-Platform Matching** - Uses Songlink/Odesli API to find tracks on all services
 3. **Threaded Replies** - Posts clean, formatted messages in threads
 4. **Context Awareness** - Excludes the original service from replies
@@ -83,7 +83,7 @@ Message Posted → Slack Events API → Vercel Function
 ```
 
 ### Key Features Implemented
-- ✅ Regex patterns for all 5 music services (Spotify, Apple Music, Tidal, Qobuz, YouTube Music)
+- ✅ Regex patterns for all 6 music services (Spotify, Apple Music, Tidal, Qobuz, YouTube Music, Bandcamp)
 - ✅ Songlink API integration with error handling
 - ✅ Slack signature verification for security
 - ✅ URL verification challenge handling
@@ -106,7 +106,7 @@ Message Posted → Slack Events API → Vercel Function
 > Check out this track! https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp
 
 **Bot replies in thread:**
-> Also stream this on: Apple Music | Qobuz | Tidal | YouTube Music
+> Also stream this on: Apple Music | Bandcamp | Qobuz | Tidal | YouTube Music
 > 
 > _Could not find this on: [any missing services]_
 
@@ -178,7 +178,7 @@ If you run into issues:
 ## Future Enhancements
 
 Ideas for v2.0:
-- Support for Deezer, SoundCloud, Bandcamp
+- Support for Deezer, SoundCloud
 - User preferences for which services to show
 - Analytics dashboard
 - Handle multiple links per message

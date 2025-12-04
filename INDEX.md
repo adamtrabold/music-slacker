@@ -115,17 +115,18 @@ Music Slacker/
 
 ## 🔑 Key Concepts
 
-### The Five Music Services
+### The Six Music Services
 - **Spotify** - `open.spotify.com`
 - **Apple Music** - `music.apple.com`
 - **Tidal** - `tidal.com`
 - **Qobuz** - `open.qobuz.com` or `play.qobuz.com`
 - **YouTube Music** - `music.youtube.com`
+- **Bandcamp** - `*.bandcamp.com`
 
 ### Core Behavior
 1. User posts music link from Service A
-2. Bot finds same track on Services B, C, D, E
-3. Bot posts threaded reply with links to B, C, D, E (excluding A)
+2. Bot finds same track on Services B, C, D, E, F
+3. Bot posts threaded reply with links to B, C, D, E, F (excluding A)
 
 ### Technology Stack
 - **Language:** Node.js + TypeScript

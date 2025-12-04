@@ -22,6 +22,7 @@ export interface SonglinkResponse {
     youtube?: SonglinkPlatformLink;
     youtubeMusic?: SonglinkPlatformLink;
     deezer?: SonglinkPlatformLink;
+    bandcamp?: SonglinkPlatformLink;
   };
   entitiesByUniqueId?: Record<string, any>;
   pageUrl: string;
@@ -33,6 +34,7 @@ export interface CrossPlatformLinks {
   tidal?: string;
   qobuz?: string;
   youtubeMusic?: string;
+  bandcamp?: string;
 }
 
 /**
@@ -61,6 +63,7 @@ export async function getCrossPlatformLinks(
       tidal: linksByPlatform.tidal?.url,
       qobuz: linksByPlatform.qobuz?.url,
       youtubeMusic: linksByPlatform.youtubeMusic?.url,
+      bandcamp: linksByPlatform.bandcamp?.url,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {

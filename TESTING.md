@@ -89,12 +89,25 @@ https://music.youtube.com/watch?v=rfUYuIVaZjY
 
 **Expected:**
 - Bot posts threaded reply
-- Reply contains: Spotify, Apple Music, Tidal, Qobuz links
+- Reply contains: Spotify, Apple Music, Tidal, Qobuz, Bandcamp links
 - Reply DOES NOT contain YouTube Music
 
 ---
 
-#### Test 6: Message with Text and Link
+#### Test 6: Bandcamp Link Detection
+**Input:**
+```
+https://artistname.bandcamp.com/album/album-name
+```
+
+**Expected:**
+- Bot posts threaded reply
+- Reply contains: Spotify, Apple Music, Tidal, Qobuz, YouTube Music links
+- Reply DOES NOT contain Bandcamp
+
+---
+
+#### Test 7: Message with Text and Link
 **Input:**
 ```
 Check out this awesome track! https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp
@@ -107,7 +120,7 @@ Really loving it!
 
 ---
 
-#### Test 7: Multiple Links (First Link Processing)
+#### Test 8: Multiple Links (First Link Processing)
 **Input:**
 ```
 https://open.spotify.com/track/3n3Ppam7vgaVa1iaRUc9Lp
@@ -120,7 +133,7 @@ https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT
 
 ---
 
-#### Test 8: Non-Music Link (Should Ignore)
+#### Test 9: Non-Music Link (Should Ignore)
 **Input:**
 ```
 Check out this website: https://google.com
@@ -132,7 +145,7 @@ Check out this website: https://google.com
 
 ---
 
-#### Test 9: Track Not Available on All Services
+#### Test 10: Track Not Available on All Services
 **Input:** Find an obscure track only on one service (if possible)
 ```
 [Obscure track link]
@@ -144,7 +157,7 @@ Check out this website: https://google.com
 
 ---
 
-#### Test 10: Invalid/Broken Music Link
+#### Test 11: Invalid/Broken Music Link
 **Input:**
 ```
 https://open.spotify.com/track/invalidtrackid123456789
@@ -157,7 +170,7 @@ https://open.spotify.com/track/invalidtrackid123456789
 
 ---
 
-#### Test 11: Bot Doesn't Reply to Itself
+#### Test 12: Bot Doesn't Reply to Itself
 **Input:**
 - Let bot post a reply with music links
 - Observe if bot tries to process its own links
@@ -241,7 +254,7 @@ Look for:
 
 ## Success Criteria
 
-✅ Bot detects all 5 music services correctly (Spotify, Apple Music, Tidal, Qobuz, YouTube Music)  
+✅ Bot detects all 6 music services correctly (Spotify, Apple Music, Tidal, Qobuz, YouTube Music, Bandcamp)  
 ✅ Bot posts threaded replies (not channel messages)  
 ✅ Bot excludes original service from reply  
 ✅ Bot handles partial results gracefully  
@@ -260,5 +273,5 @@ If you find bugs:
 
 ---
 
-**Ready to test! Start with Tests 1-5 to verify basic functionality.** 🧪
+**Ready to test! Start with Tests 1-6 to verify basic functionality.** 🧪
 

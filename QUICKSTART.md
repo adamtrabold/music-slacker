@@ -98,6 +98,7 @@ The bot should reply in a thread with links to other services! 🎉
 - Tidal
 - Qobuz
 - YouTube Music
+- Bandcamp
 
 ## Troubleshooting
 

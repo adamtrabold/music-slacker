@@ -37,7 +37,8 @@ export function extractMusicLink(messageText: string): string | null {
   for (const pattern of Object.values(MUSIC_URL_PATTERNS)) {
     const match = messageText.match(pattern);
     if (match) {
-      return match[0];
+      // Remove trailing > if present (Slack wraps URLs in <>)
+      return match[0].replace(/>$/, '');
     }
   }
 

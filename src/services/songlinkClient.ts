@@ -51,7 +51,7 @@ export async function getCrossPlatformLinks(
         url: musicUrl,
         userCountry: 'US', // Can be made configurable
       },
-      timeout: 8000, // 8 second timeout
+      timeout: 15000, // 15 second timeout
     });
 
     const { linksByPlatform } = response.data;

@@ -32,6 +32,12 @@ if (SLACK_BOT_TOKEN) {
  * Verifies that the request came from Slack
  */
 function verifySlackRequest(req: VercelRequest): boolean {
+  // Skip signature verification in local development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('⚠️  Skipping signature verification (development mode)');
+    return true;
+  }
+
   const slackSignature = req.headers['x-slack-signature'] as string;
   const timestamp = req.headers['x-slack-request-timestamp'] as string;
   const body = JSON.stringify(req.body);

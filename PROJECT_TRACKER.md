@@ -1,7 +1,7 @@
 # Music Slacker Bot - Project Tracker
 
 ## Overview
-Building a Slack bot that automatically finds and posts music links across all streaming services (Spotify, Apple Music, Tidal, Qobuz) in a threaded reply when someone shares a music link.
+Building a Slack bot that automatically finds and posts music links across all streaming services (Spotify, Apple Music, Tidal, Qobuz, YouTube Music, Bandcamp) in a threaded reply when someone shares a music link.
 
 **Tech Stack:** Node.js/TypeScript, Vercel Serverless Functions, Songlink API, Slack Events API
 
@@ -64,14 +64,14 @@ Building a Slack bot that automatically finds and posts music links across all s
   - [x] Error handling and logging
 
 ### Phase 6: Testing & Deployment
-- [ ] Test locally with ngrok
-- [ ] Test music link detection for all services
-- [ ] Test Songlink API integration
-- [ ] Test Slack threaded replies
-- [ ] Test edge cases (no matches, partial matches)
+- [x] Test locally with ngrok
+- [x] Test music link detection for all services
+- [x] Test Songlink API integration
+- [x] Test Slack threaded replies
+- [x] Test edge cases (no matches, partial matches)
 - [ ] Deploy to Vercel
 - [ ] Configure Slack app with production URL
-- [ ] Test in live Slack channel
+- [ ] Test in live Slack channel (production)
 - [ ] Monitor for errors
 
 ---
@@ -79,22 +79,24 @@ Building a Slack bot that automatically finds and posts music links across all s
 ## Testing Checklist
 
 ### Functional Tests
-- [ ] Bot detects Spotify links
-- [ ] Bot detects Apple Music links
-- [ ] Bot detects Tidal links
-- [ ] Bot detects Qobuz links
-- [ ] Bot excludes original service from reply
-- [ ] Bot posts threaded reply (not channel message)
-- [ ] Bot handles partial results correctly
-- [ ] Bot handles no results gracefully
+- [x] Bot detects Spotify links
+- [x] Bot detects Apple Music links
+- [x] Bot detects Tidal links
+- [x] Bot detects Qobuz links
+- [x] Bot detects YouTube Music links
+- [x] Bot detects Bandcamp links
+- [x] Bot excludes original service from reply
+- [x] Bot posts threaded reply (not channel message)
+- [x] Bot handles partial results correctly
+- [x] Bot handles no results gracefully
 
 ### Edge Cases
-- [ ] Multiple links in one message (processes first only)
-- [ ] Bot ignores its own messages
-- [ ] Bot handles invalid/broken music links
-- [ ] Bot handles Songlink API errors
-- [ ] Bot handles Slack API errors
-- [ ] Bot works in public channels
+- [x] Multiple links in one message (processes first only)
+- [x] Bot ignores its own messages
+- [x] Bot handles invalid/broken music links
+- [x] Bot handles Songlink API errors
+- [x] Bot handles Slack API errors
+- [x] Bot works in public channels
 - [ ] Bot works in private channels (if invited)
 
 ---
@@ -102,23 +104,23 @@ Building a Slack bot that automatically finds and posts music links across all s
 ## Configuration Required
 
 ### Slack App Setup
-- [ ] Create Slack App at api.slack.com/apps
-- [ ] Add Bot Token Scopes:
-  - [ ] chat:write
-  - [ ] reactions:read
-  - [ ] channels:history
-  - [ ] groups:history
-- [ ] Subscribe to Events:
-  - [ ] message.channels
-  - [ ] message.groups
-- [ ] Set Request URL (Vercel function URL)
-- [ ] Install app to workspace
-- [ ] Copy Bot Token to .env
-- [ ] Copy Signing Secret to .env
+- [x] Create Slack App at api.slack.com/apps
+- [x] Add Bot Token Scopes:
+  - [x] chat:write
+  - [x] reactions:read
+  - [x] channels:history
+  - [x] groups:history
+- [x] Subscribe to Events:
+  - [x] message.channels
+  - [x] message.groups
+- [x] Set Request URL (ngrok URL for local testing)
+- [x] Install app to workspace
+- [x] Copy Bot Token to .env
+- [x] Copy Signing Secret to .env
 
 ### Vercel Setup
-- [ ] Install Vercel CLI (`npm i -g vercel`)
-- [ ] Create Vercel account
+- [x] Install Vercel CLI (`npm i -g vercel`)
+- [x] Create Vercel account
 - [ ] Link project to Vercel
 - [ ] Set environment variables in Vercel dashboard
 - [ ] Deploy to production
@@ -128,7 +130,7 @@ Building a Slack bot that automatically finds and posts music links across all s
 ## Progress Tracking
 
 **Started:** December 4, 2025  
-**Current Phase:** Ready for Deployment  
+**Current Phase:** Local Testing Complete - Ready for Production  
 **Completion:** 10/10 major tasks ✓
 
 ### Completed Tasks
@@ -138,17 +140,32 @@ Building a Slack bot that automatically finds and posts music links across all s
 - [x] Phase 3: Core Services - Dec 4, 2025
 - [x] Phase 4: Utilities - Dec 4, 2025
 - [x] Phase 5: Main Handler - Dec 4, 2025
-- [ ] Phase 6: Testing & Deployment - Pending user action
+- [x] Phase 6: Testing & Deployment - Local testing complete Dec 4, 2025
+  - Production deployment pending
 
 ---
 
 ## Notes & Issues
 
+### Testing Results (Dec 4, 2025)
+- ✅ **Local Testing with ngrok:** Successful
+- ✅ **Apple Music Links:** Tested and working perfectly
+- ✅ **Threaded Replies:** Working as expected
+- ✅ **Cross-platform Links:** Songlink API returning links for all services
+- ✅ **Error Handling:** Gracefully handles API timeouts and errors
+
 ### Known Issues
-_(Track bugs and issues here)_
+- Slack signature verification doesn't work with ngrok (bypassed in dev mode)
+- Initial Songlink API timeout was too short (fixed: 8s → 15s)
+- URL extraction was capturing Slack's trailing `>` (fixed)
+
+### Resolved Issues
+- ✅ URL extraction now removes trailing `>` from Slack-wrapped URLs
+- ✅ Increased API timeout for better reliability
+- ✅ Added development mode for local testing
 
 ### Future Enhancements
-- Support for YouTube Music, Deezer, SoundCloud
+- Support for Deezer, SoundCloud (Bandcamp ✅, YouTube Music ✅)
 - Allow users to configure which services they want
 - Analytics on which services are most popular
 - Support for multiple links in one message

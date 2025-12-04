@@ -119,6 +119,19 @@ export default async function handler(
     // Parse the body
     const body = JSON.parse(rawBodyString);
     
+    console.log('===== DEBUG INFO =====');
+    console.log('Raw body:', rawBodyString);
+    console.log('Raw body length:', rawBodyString.length);
+    console.log('Timestamp:', req.headers['x-slack-request-timestamp']);
+    console.log('Received signature:', req.headers['x-slack-signature']);
+    
+    // Calculate what the signature should be
+    const timestamp = req.headers['x-slack-request-timestamp'] as string;
+    const sigBasestring = `v0:${timestamp}:${rawBodyString}`;
+    const calculatedSig = 'v0=' + crypto.createHmac('sha256', SLACK_SIGNING_SECRET).update(sigBasestring).digest('hex');
+    console.log('Calculated signature:', calculatedSig);
+    console.log('======================');
+    
     console.log('Request received:', {
       type: body?.type,
       bodyLength: rawBodyString.length,

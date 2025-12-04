@@ -5,7 +5,6 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import { Readable } from 'stream';
 import {
   extractMusicLink,
   identifyMusicService,
@@ -34,23 +33,9 @@ if (SLACK_BOT_TOKEN) {
 }
 
 /**
- * Parse raw body from request
- */
-async function getRawBody(req: VercelRequest): Promise<string> {
-  const chunks: Buffer[] = [];
-  const readable = req as unknown as Readable;
-  
-  for await (const chunk of readable) {
-    chunks.push(Buffer.from(chunk));
-  }
-  
-  return Buffer.concat(chunks).toString('utf-8');
-}
-
-/**
  * Verifies that the request came from Slack
  */
-async function verifySlackRequest(req: VercelRequest, rawBody: string): Promise<boolean> {
+function verifySlackRequest(req: VercelRequest, body: any): boolean {
   // Skip signature verification in local development
   if (process.env.NODE_ENV === 'development') {
     console.log('⚠️  Skipping signature verification (development mode)');
@@ -72,6 +57,9 @@ async function verifySlackRequest(req: VercelRequest, rawBody: string): Promise<
     return false;
   }
 
+  // Use the stringified body for signature verification
+  const rawBody = typeof body === 'string' ? body : JSON.stringify(body);
+  
   // Verify signature
   const sigBasestring = `v0:${timestamp}:${rawBody}`;
   const mySignature =
@@ -82,10 +70,20 @@ async function verifySlackRequest(req: VercelRequest, rawBody: string): Promise<
       .digest('hex');
 
   try {
-    return crypto.timingSafeEqual(
+    const isValid = crypto.timingSafeEqual(
       Buffer.from(mySignature),
       Buffer.from(slackSignature)
     );
+    
+    if (!isValid) {
+      console.log('Signature mismatch:', {
+        expected: mySignature,
+        received: slackSignature,
+        timestamp,
+      });
+    }
+    
+    return isValid;
   } catch (error) {
     console.error('Signature verification error:', error);
     return false;
@@ -105,12 +103,17 @@ export default async function handler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Get raw body for signature verification
-    const rawBody = await getRawBody(req);
-    const body = JSON.parse(rawBody);
+    // Vercel automatically parses JSON bodies into req.body
+    const body = req.body;
+    
+    console.log('Request received:', {
+      type: body?.type,
+      hasSignature: !!req.headers['x-slack-signature'],
+      hasTimestamp: !!req.headers['x-slack-request-timestamp'],
+    });
 
     // Verify request is from Slack
-    if (!(await verifySlackRequest(req, rawBody))) {
+    if (!verifySlackRequest(req, body)) {
       console.error('Invalid Slack signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }
@@ -119,7 +122,7 @@ export default async function handler(
 
     // Handle URL verification challenge
     if (type === 'url_verification') {
-      console.log('✅ URL verification challenge received');
+      console.log('✅ URL verification challenge received, responding with challenge');
       return res.status(200).json({ challenge });
     }
 
@@ -139,6 +142,7 @@ export default async function handler(
     }
 
     // Unknown event type
+    console.log('Unknown event type:', type);
     return res.status(400).json({ error: 'Unknown event type' });
   } catch (error) {
     console.error('Handler error:', error);

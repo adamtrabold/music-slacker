@@ -55,7 +55,7 @@ const app = new App({
 });
 
 // Listen for messages with music links
-app.message(async ({ message, say }) => {
+app.message(async ({ message }) => {
   try {
     // Only process regular messages
     if (message.subtype || !('text' in message)) {
@@ -64,13 +64,24 @@ app.message(async ({ message, say }) => {
 
     const { text, channel, ts } = message;
 
+    // Type guard: ensure we have required fields
+    if (!text || !channel || !ts) {
+      console.warn('Message missing text, channel, or ts');
+      return;
+    }
+
+    // After type guard, we know all fields are defined
+    const channelId: string = channel;
+    const messageTs: string = ts;
+    const messageText: string = text;
+
     // Check if message contains a music link
-    const musicLink = extractMusicLink(text);
+    const musicLink = extractMusicLink(messageText);
     if (!musicLink) {
       return; // No music link found
     }
 
-    console.log('Found music link:', { musicLink, channel });
+    console.log('Found music link:', { musicLink, channel: channelId });
 
     // Identify which service the link is from
     const originalService = identifyMusicService(musicLink);
@@ -98,10 +109,10 @@ app.message(async ({ message, say }) => {
     const formattedMessage = formatMusicLinksMessage(allLinks, originalService);
 
     // Post threaded reply
-    await postThreadedReply(channel, ts, formattedMessage);
+    await postThreadedReply(channelId, messageTs, formattedMessage);
 
     console.log('Successfully posted cross-platform links', {
-      channel,
+      channel: channelId,
       originalService,
       linksFound: Object.keys(allLinks).filter(k => allLinks[k as keyof typeof allLinks]).length,
     });
@@ -112,7 +123,7 @@ app.message(async ({ message, say }) => {
     });
 
     // Post error message to thread
-    if ('channel' in message && 'ts' in message) {
+    if ('channel' in message && 'ts' in message && message.channel && message.ts) {
       try {
         const errorMessage = formatErrorMessage(error);
         await postThreadedReply(message.channel, message.ts, errorMessage);
@@ -158,17 +169,40 @@ export default async function handler(
     });
 
     // Convert Vercel request to AWS Lambda event format
-    // The AwsLambdaReceiver expects the body as a string
+    // The AwsLambdaReceiver expects a complete AWS API Gateway event
     const lambdaEvent = {
       body: rawBodyString,
-      headers: req.headers as { [key: string]: string },
+      headers: req.headers as any,
+      multiValueHeaders: {},
+      httpMethod: req.method || 'POST',
       isBase64Encoded: false,
+      path: '/api/slack-events',
+      pathParameters: null,
+      queryStringParameters: null,
+      multiValueQueryStringParameters: null,
+      stageVariables: null,
+      requestContext: {
+        accountId: '',
+        apiId: '',
+        protocol: 'HTTP/1.1',
+        httpMethod: req.method || 'POST',
+        path: '/api/slack-events',
+        stage: 'prod',
+        requestId: '',
+        requestTime: '',
+        requestTimeEpoch: Date.now(),
+        identity: {
+          sourceIp: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '',
+          userAgent: req.headers['user-agent'] || '',
+        },
+      },
+      resource: '/api/slack-events',
     };
 
     // Use the Bolt receiver to handle the request
     // This properly verifies the signature using the raw body
     const response = await awsLambdaReceiver.start();
-    const result = await response(lambdaEvent, {} as any);
+    const result = await response(lambdaEvent, {} as any, () => {});
 
     console.log('Response:', {
       statusCode: result.statusCode,
@@ -186,10 +220,10 @@ export default async function handler(
     }
     
     // Send the body
-    if (typeof result.body === 'string') {
+    if (result.body) {
       res.send(result.body);
     } else {
-      res.json(result.body);
+      res.end();
     }
   } catch (error: any) {
     console.error('Handler error:', error);

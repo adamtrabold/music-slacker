@@ -5,7 +5,6 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import getRawBody from 'raw-body';
 import {
   extractMusicLink,
   identifyMusicService,
@@ -25,19 +24,28 @@ import {
   sanitizeMetadata,
 } from '../src/services/searchUrlGenerator';
 
-// Disable automatic body parsing - we need the raw body for signature verification
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 // Initialize Slack client with bot token
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN!;
 const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET!;
 
 if (SLACK_BOT_TOKEN) {
   initializeSlackClient(SLACK_BOT_TOKEN);
+}
+
+/**
+ * Get raw body from request stream
+ * Using Node.js Stream API as recommended for Vercel functions
+ */
+function getRawBody(req: VercelRequest): Promise<string> {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', (data) => {
+      body += data;
+    });
+    req.on('end', () => {
+      resolve(body);
+    });
+  });
 }
 
 /**
@@ -100,9 +108,8 @@ export default async function handler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Get the raw body using raw-body package
-    const rawBody = await getRawBody(req);
-    const rawBodyString = rawBody.toString('utf8');
+    // Get the raw body from the stream
+    const rawBodyString = await getRawBody(req);
     
     // Parse the body
     const body = JSON.parse(rawBodyString);

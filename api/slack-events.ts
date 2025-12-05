@@ -40,6 +40,18 @@ if (SLACK_BOT_TOKEN) {
   initializeSlackClient(SLACK_BOT_TOKEN);
 }
 
+// Store processed event IDs to prevent duplicate processing
+// In a production app, use Redis or a database. For now, in-memory is fine.
+const processedEvents = new Set<string>();
+
+// Clean up old event IDs after 1 hour (Slack won't retry after 1 hour)
+setInterval(() => {
+  if (processedEvents.size > 1000) {
+    processedEvents.clear();
+    console.log('🧹 Cleared processed events cache');
+  }
+}, 60 * 60 * 1000); // 1 hour
+
 /**
  * Verifies that the request came from Slack
  * Using crypto.timingSafeEqual to prevent timing attacks
@@ -152,6 +164,18 @@ export default async function handler(
 
     // Handle event callbacks
     if (type === 'event_callback') {
+      // Check for duplicate events using event_id
+      const eventId = body.event_id;
+      
+      if (processedEvents.has(eventId)) {
+        console.log('⏭️ Skipping duplicate event:', eventId);
+        return res.status(200).json({ ok: true });
+      }
+      
+      // Mark event as processed
+      processedEvents.add(eventId);
+      console.log('🆕 Processing new event:', eventId);
+      
       // Process the event BEFORE responding
       // Vercel kills background tasks after response is sent
       try {

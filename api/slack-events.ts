@@ -24,6 +24,7 @@ import {
   generateSearchUrls,
   sanitizeMetadata,
 } from '../src/services/searchUrlGenerator';
+import { getWorkspaceTokens } from '../src/services/tokenStorage';
 
 // Disable body parser to get raw body for signature verification
 export const config = {
@@ -32,13 +33,11 @@ export const config = {
   },
 };
 
-// Initialize Slack client with bot token
-const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN!;
+// Signing secret is shared across all workspaces
 const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET!;
 
-if (SLACK_BOT_TOKEN) {
-  initializeSlackClient(SLACK_BOT_TOKEN);
-}
+// For backwards compatibility with single-workspace setup
+const FALLBACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN;
 
 // Store processed event IDs to prevent duplicate processing
 // In a production app, use Redis or a database. For now, in-memory is fine.
@@ -176,10 +175,13 @@ export default async function handler(
       processedEvents.add(eventId);
       console.log('🆕 Processing new event:', eventId);
       
+      // Get the team ID from the event
+      const teamId = body.team_id;
+      
       // Process the event BEFORE responding
       // Vercel kills background tasks after response is sent
       try {
-        await processEvent(event);
+        await processEvent(event, teamId);
       } catch (error) {
         console.error('Error processing event:', error);
       }
@@ -200,9 +202,34 @@ export default async function handler(
 /**
  * Processes a Slack message event
  */
-async function processEvent(event: any): Promise<void> {
+async function processEvent(event: any, teamId: string): Promise<void> {
   const startTime = Date.now();
   const timing: Record<string, number> = {};
+  
+  // Get the bot token for this specific workspace
+  let botToken = FALLBACK_BOT_TOKEN;
+  
+  try {
+    const tokens = await getWorkspaceTokens(teamId);
+    if (tokens) {
+      botToken = tokens.botToken;
+      console.log('✅ Using token for workspace:', teamId);
+    } else if (FALLBACK_BOT_TOKEN) {
+      console.log('⚠️ Using fallback token (single workspace mode)');
+    } else {
+      console.error('❌ No token found for workspace:', teamId);
+      return;
+    }
+  } catch (error) {
+    console.error('Error loading workspace tokens:', error);
+    if (!FALLBACK_BOT_TOKEN) {
+      return;
+    }
+    console.log('Using fallback token due to error');
+  }
+  
+  // Initialize Slack client with the workspace-specific token
+  initializeSlackClient(botToken!);
   
   // Only process message events
   if (event.type !== 'message') {

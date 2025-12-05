@@ -105,10 +105,15 @@ export default async function handler(
       return res.status(200).json({ challenge });
     }
 
-    // TODO: Re-enable signature verification after testing
-    // For now, skip verification to get bot working
-    // Signature verification with JSON.stringify doesn't match Slack's signed body
-    console.log('⚠️ Signature verification temporarily disabled for testing');
+    // For all other requests, verify signature for security
+    const bodyString = JSON.stringify(body);
+    const signature = req.headers['x-slack-signature'] as string | undefined;
+    const timestamp = req.headers['x-slack-request-timestamp'] as string | undefined;
+    
+    if (!verifySlackRequest(signature, timestamp, bodyString)) {
+      console.error('Invalid Slack signature');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
 
     // Handle event callbacks
     if (type === 'event_callback') {

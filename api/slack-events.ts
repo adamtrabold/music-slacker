@@ -1,13 +1,11 @@
 /**
  * Slack Events Handler (Vercel Serverless Function)
  * Handles incoming Slack events and processes music links
- * 
- * Uses @slack/bolt's AwsLambdaReceiver which works perfectly with Vercel
  */
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { App, AwsLambdaReceiver } from '@slack/bolt';
-import { IncomingMessage } from 'http';
+import crypto from 'crypto';
+import getRawBody from 'raw-body';
 import {
   extractMusicLink,
   identifyMusicService,
@@ -27,7 +25,7 @@ import {
   sanitizeMetadata,
 } from '../src/services/searchUrlGenerator';
 
-// Disable automatic body parsing to get raw body for signature verification
+// Disable automatic body parsing - we need the raw body for signature verification
 export const config = {
   api: {
     bodyParser: false,
@@ -42,122 +40,55 @@ if (SLACK_BOT_TOKEN) {
   initializeSlackClient(SLACK_BOT_TOKEN);
 }
 
-// Initialize the Bolt receiver for AWS Lambda (works with Vercel too)
-// This handles signature verification correctly
-const awsLambdaReceiver = new AwsLambdaReceiver({
-  signingSecret: SLACK_SIGNING_SECRET,
-});
-
-// Initialize the Bolt app
-const app = new App({
-  token: SLACK_BOT_TOKEN,
-  receiver: awsLambdaReceiver,
-});
-
-// Listen for messages with music links
-app.message(async ({ message }) => {
-  try {
-    // Only process regular messages
-    if (message.subtype || !('text' in message)) {
-      return;
-    }
-
-    const { text, channel, ts } = message;
-
-    // Type guard: ensure we have required fields
-    if (!text || !channel || !ts) {
-      console.warn('Message missing text, channel, or ts');
-      return;
-    }
-
-    // After type guard, we know all fields are defined
-    const channelId: string = channel;
-    const messageTs: string = ts;
-    const messageText: string = text;
-
-    // Check if message contains a music link
-    const musicLink = extractMusicLink(messageText);
-    if (!musicLink) {
-      return; // No music link found
-    }
-
-    console.log('Found music link:', { musicLink, channel: channelId });
-
-    // Identify which service the link is from
-    const originalService = identifyMusicService(musicLink);
-    if (originalService === MusicService.UNKNOWN) {
-      console.warn('Unknown music service:', musicLink);
-      return;
-    }
-
-    // Fetch cross-platform links from Songlink
-    const result = await getCrossPlatformLinks(musicLink);
-    const { links, metadata } = result;
-
-    // Generate search URLs for Qobuz and Bandcamp if not provided by Songlink
-    const sanitizedMetadata = sanitizeMetadata(metadata);
-    const searchUrls = generateSearchUrls(sanitizedMetadata);
-
-    // Merge Songlink links with generated search URLs
-    const allLinks = {
-      ...links,
-      qobuz: links.qobuz || searchUrls.qobuz,
-      bandcamp: links.bandcamp || searchUrls.bandcamp,
-    };
-
-    // Format the message
-    const formattedMessage = formatMusicLinksMessage(allLinks, originalService);
-
-    // Post threaded reply
-    await postThreadedReply(channelId, messageTs, formattedMessage);
-
-    console.log('Successfully posted cross-platform links', {
-      channel: channelId,
-      originalService,
-      linksFound: Object.keys(allLinks).filter(k => allLinks[k as keyof typeof allLinks]).length,
-    });
-  } catch (error: any) {
-    console.error('Error processing music link:', {
-      error: error.message,
-      stack: error.stack,
-    });
-
-    // Post error message to thread
-    if ('channel' in message && 'ts' in message && message.channel && message.ts) {
-      try {
-        const errorMessage = formatErrorMessage(error);
-        await postThreadedReply(message.channel, message.ts, errorMessage);
-      } catch (postError) {
-        console.error('Failed to post error message:', postError);
-      }
-    }
-  }
-});
-
 /**
- * Get raw body as buffer from the request
- * Using event-based approach that's more reliable in Vercel
+ * Verifies that the request came from Slack
+ * Using crypto.timingSafeEqual to prevent timing attacks
  */
-function getRawBody(req: IncomingMessage): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    
-    req.on('data', (chunk) => {
-      chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-    });
-    
-    req.on('end', () => {
-      resolve(Buffer.concat(chunks));
-    });
-    
-    req.on('error', (err) => {
-      reject(err);
-    });
-  });
+function verifySlackRequest(
+  signature: string,
+  timestamp: string,
+  body: string
+): boolean {
+  // Skip signature verification in local development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('⚠️  Skipping signature verification (development mode)');
+    return true;
+  }
+
+  if (!signature || !timestamp) {
+    console.error('Missing Slack signature or timestamp headers');
+    return false;
+  }
+
+  // Prevent replay attacks (request older than 5 minutes)
+  const time = Math.floor(new Date().getTime() / 1000);
+  if (Math.abs(time - parseInt(timestamp)) > 300) {
+    console.warn('Slack request timestamp too old');
+    return false;
+  }
+
+  // Verify signature
+  const sigBasestring = `v0:${timestamp}:${body}`;
+  const mySignature =
+    'v0=' +
+    crypto
+      .createHmac('sha256', SLACK_SIGNING_SECRET)
+      .update(sigBasestring, 'utf8')
+      .digest('hex');
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(mySignature, 'utf8'),
+      Buffer.from(signature, 'utf8')
+    );
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
 }
 
 /**
- * Main handler for Vercel - converts Vercel request to Lambda-style event
+ * Main handler for Slack events
  */
 export default async function handler(
   req: VercelRequest,
@@ -169,80 +100,136 @@ export default async function handler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Get raw body as string for signature verification
-    const rawBodyBuffer = await getRawBody(req);
-    const rawBodyString = rawBodyBuffer.toString('utf-8');
+    // Get the raw body using raw-body package
+    const rawBody = await getRawBody(req);
+    const rawBodyString = rawBody.toString('utf8');
+    
+    // Parse the body
+    const body = JSON.parse(rawBodyString);
 
     console.log('Request received:', {
+      type: body?.type,
       bodyLength: rawBodyString.length,
-      hasSignature: !!req.headers['x-slack-signature'],
-      hasTimestamp: !!req.headers['x-slack-request-timestamp'],
     });
 
-    // Convert Vercel request to AWS Lambda event format
-    // The AwsLambdaReceiver expects a complete AWS API Gateway event
-    const lambdaEvent = {
-      body: rawBodyString,
-      headers: req.headers as any,
-      multiValueHeaders: {},
-      httpMethod: req.method || 'POST',
-      isBase64Encoded: false,
-      path: '/api/slack-events',
-      pathParameters: null,
-      queryStringParameters: null,
-      multiValueQueryStringParameters: null,
-      stageVariables: null,
-      requestContext: {
-        accountId: '',
-        apiId: '',
-        protocol: 'HTTP/1.1',
-        httpMethod: req.method || 'POST',
-        path: '/api/slack-events',
-        stage: 'prod',
-        requestId: '',
-        requestTime: '',
-        requestTimeEpoch: Date.now(),
-        identity: {
-          sourceIp: req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || '',
-          userAgent: req.headers['user-agent'] || '',
-        },
-      },
-      resource: '/api/slack-events',
+    // Verify request is from Slack
+    const signature = req.headers['x-slack-signature'] as string;
+    const timestamp = req.headers['x-slack-request-timestamp'] as string;
+    
+    if (!verifySlackRequest(signature, timestamp, rawBodyString)) {
+      console.error('Invalid Slack signature');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+
+    const { type, challenge, event } = body;
+
+    // Handle URL verification challenge
+    if (type === 'url_verification') {
+      console.log('✅ URL verification challenge received, responding with challenge');
+      return res.status(200).json({ challenge });
+    }
+
+    // Handle event callbacks
+    if (type === 'event_callback') {
+      // Respond quickly to Slack to avoid timeout
+      res.status(200).json({ ok: true });
+
+      // Process the event asynchronously
+      try {
+        await processEvent(event);
+      } catch (error) {
+        console.error('Error processing event:', error);
+      }
+
+      return;
+    }
+
+    // Unknown event type
+    console.log('Unknown event type:', type);
+    return res.status(400).json({ error: 'Unknown event type' });
+  } catch (error) {
+    console.error('Handler error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+/**
+ * Processes a Slack message event
+ */
+async function processEvent(event: any): Promise<void> {
+  // Only process message events
+  if (event.type !== 'message') {
+    return;
+  }
+
+  // Ignore bot messages (including our own)
+  if (event.bot_id || event.subtype === 'bot_message') {
+    return;
+  }
+
+  // Ignore message edits, deletions, etc.
+  if (event.subtype && event.subtype !== 'file_share') {
+    return;
+  }
+
+  const { text, channel, ts } = event;
+
+  // Check if message contains a music link
+  const musicLink = extractMusicLink(text);
+  if (!musicLink) {
+    return; // No music link found
+  }
+
+  console.log('Found music link:', { musicLink, channel });
+
+  // Identify which service the link is from
+  const originalService = identifyMusicService(musicLink);
+  if (originalService === MusicService.UNKNOWN) {
+    console.warn('Unknown music service:', musicLink);
+    return;
+  }
+
+  try {
+    // Fetch cross-platform links from Songlink
+    const result = await getCrossPlatformLinks(musicLink);
+    const { links, metadata } = result;
+
+    // Generate search URLs for Qobuz and Bandcamp if not provided by Songlink
+    const sanitizedMetadata = sanitizeMetadata(metadata);
+    const searchUrls = generateSearchUrls(sanitizedMetadata);
+
+    // Merge Songlink links with generated search URLs
+    // Only add search URLs if Songlink didn't provide them
+    const allLinks = {
+      ...links,
+      qobuz: links.qobuz || searchUrls.qobuz,
+      bandcamp: links.bandcamp || searchUrls.bandcamp,
     };
 
-    // Use the Bolt receiver to handle the request
-    // This properly verifies the signature using the raw body
-    const response = await awsLambdaReceiver.start();
-    const result = await response(lambdaEvent, {} as any, () => {});
+    // Format the message
+    const message = formatMusicLinksMessage(allLinks, originalService);
 
-    console.log('Response:', {
-      statusCode: result.statusCode,
-      bodyPreview: result.body?.substring(0, 100),
+    // Post threaded reply
+    await postThreadedReply(channel, ts, message);
+
+    console.log('Successfully posted cross-platform links', {
+      channel,
+      originalService,
+      linksFound: Object.keys(allLinks).filter(k => allLinks[k as keyof typeof allLinks]).length,
     });
-
-    // Return the response
-    res.status(result.statusCode);
-    
-    // Set headers if any
-    if (result.headers) {
-      Object.entries(result.headers).forEach(([key, value]) => {
-        res.setHeader(key, value as string);
-      });
-    }
-    
-    // Send the body
-    if (result.body) {
-      res.send(result.body);
-    } else {
-      res.end();
-    }
   } catch (error: any) {
-    console.error('Handler error:', error);
-    console.error('Error stack:', error.stack);
-    return res.status(500).json({ 
-      error: 'Internal server error', 
-      message: error.message 
+    console.error('Error processing music link:', {
+      error: error.message,
+      musicLink,
     });
+
+    // Post error message to thread
+    try {
+      const errorMessage = formatErrorMessage(error);
+      await postThreadedReply(channel, ts, errorMessage);
+    } catch (postError) {
+      console.error('Failed to post error message:', postError);
+    }
   }
 }
 

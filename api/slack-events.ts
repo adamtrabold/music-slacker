@@ -5,6 +5,7 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
+import { buffer } from 'micro';
 import {
   extractMusicLink,
   identifyMusicService,
@@ -23,6 +24,13 @@ import {
   generateSearchUrls,
   sanitizeMetadata,
 } from '../src/services/searchUrlGenerator';
+
+// Disable body parser to get raw body for signature verification
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 // Initialize Slack client with bot token
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN!;
@@ -92,8 +100,12 @@ export default async function handler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Vercel automatically parses the JSON body for us
-    const body = req.body;
+    // Get raw body using micro's buffer function
+    const rawBodyBuffer = await buffer(req);
+    const rawBodyString = rawBodyBuffer.toString('utf8');
+    
+    // Parse the JSON
+    const body = JSON.parse(rawBodyString);
     const { type, challenge, event } = body;
 
     console.log('Request received:', { type });
@@ -106,11 +118,10 @@ export default async function handler(
     }
 
     // For all other requests, verify signature for security
-    const bodyString = JSON.stringify(body);
     const signature = req.headers['x-slack-signature'] as string | undefined;
     const timestamp = req.headers['x-slack-request-timestamp'] as string | undefined;
     
-    if (!verifySlackRequest(signature, timestamp, bodyString)) {
+    if (!verifySlackRequest(signature, timestamp, rawBodyString)) {
       console.error('Invalid Slack signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }

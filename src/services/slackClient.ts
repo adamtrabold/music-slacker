@@ -49,8 +49,8 @@ export async function postThreadedReply(
       channel,
       thread_ts: threadTs,
       text,
-      unfurl_links: true, // Allow music links to unfurl in the thread
-      unfurl_media: true,
+      unfurl_links: false, // Disable link previews to keep response compact
+      unfurl_media: false,
     });
     console.log('Successfully posted threaded reply', { channel, threadTs });
   } catch (error: any) {

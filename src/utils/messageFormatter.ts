@@ -26,42 +26,54 @@ export function formatMusicLinksMessage(
   links: CrossPlatformLinks,
   originalService: MusicService
 ): string {
-  // Map service names to their links
-  const allServices: ServiceInfo[] = [
+  // Direct streaming services (from Songlink)
+  const directServices: ServiceInfo[] = [
     { name: 'Apple Music', url: links.appleMusic },
-    { name: 'Bandcamp', url: links.bandcamp },
-    { name: 'Qobuz', url: links.qobuz },
     { name: 'Spotify', url: links.spotify },
     { name: 'Tidal', url: links.tidal },
     { name: 'YouTube Music', url: links.youtubeMusic },
   ];
 
+  // Search services (generated search URLs)
+  const searchServices: ServiceInfo[] = [
+    { name: 'Bandcamp', url: links.bandcamp },
+    { name: 'Qobuz', url: links.qobuz },
+  ];
+
   // Filter out the original service and services without links
-  const availableServices = allServices.filter(
+  const availableDirectLinks = directServices.filter(
     service => service.url && service.name !== originalService
   );
 
-  // Services we wanted to find but couldn't
-  const missingServices = allServices.filter(
-    service => !service.url && service.name !== originalService
+  const availableSearchLinks = searchServices.filter(
+    service => service.url && service.name !== originalService
   );
 
-  // Build the main message
-  if (availableServices.length === 0) {
+  // Build the message
+  if (availableDirectLinks.length === 0 && availableSearchLinks.length === 0) {
     return 'Could not find this track on other streaming services.';
   }
 
-  // Format as: [Service Name](url) | [Service Name](url)
-  const linkParts = availableServices.map(
-    service => `<${service.url}|${service.name}>`
-  );
+  let message = '';
 
-  let message = `Also stream this on: ${linkParts.join(' | ')}`;
+  // Add direct links
+  if (availableDirectLinks.length > 0) {
+    const linkParts = availableDirectLinks.map(
+      service => `<${service.url}|${service.name}>`
+    );
+    message = `Also stream this on: ${linkParts.join(' | ')}`;
+  }
 
-  // Add "not found" message if some services are missing
-  if (missingServices.length > 0) {
-    const missingNames = missingServices.map(s => s.name).join(', ');
-    message += `\n\n_Could not find this on: ${missingNames}_`;
+  // Add search links
+  if (availableSearchLinks.length > 0) {
+    const searchParts = availableSearchLinks.map(
+      service => `<${service.url}|${service.name}>`
+    );
+    if (message) {
+      message += `\n\nSearch: ${searchParts.join(' | ')}`;
+    } else {
+      message = `Search: ${searchParts.join(' | ')}`;
+    }
   }
 
   return message;

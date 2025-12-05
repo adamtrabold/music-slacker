@@ -5,10 +5,19 @@
 
 import { Redis } from '@upstash/redis';
 
+// Check environment variables
+const UPSTASH_REDIS_REST_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_REDIS_REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) {
+  console.error('❌ Missing Upstash Redis environment variables!');
+  console.error('Required: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN');
+}
+
 // Initialize Redis client
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  url: UPSTASH_REDIS_REST_URL!,
+  token: UPSTASH_REDIS_REST_TOKEN!,
 });
 
 export interface WorkspaceTokens {
@@ -25,9 +34,14 @@ export async function storeWorkspaceTokens(
   teamId: string,
   tokens: WorkspaceTokens
 ): Promise<void> {
-  const key = `workspace:${teamId}`;
-  await redis.set(key, JSON.stringify(tokens));
-  console.log('✅ Stored tokens for workspace:', teamId);
+  try {
+    const key = `workspace:${teamId}`;
+    await redis.set(key, JSON.stringify(tokens));
+    console.log('✅ Stored tokens for workspace:', teamId);
+  } catch (error: any) {
+    console.error('❌ Failed to store tokens:', error.message);
+    throw new Error(`Failed to store tokens: ${error.message}`);
+  }
 }
 
 /**

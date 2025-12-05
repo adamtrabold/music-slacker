@@ -4,12 +4,31 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
-const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID!;
+const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  // Check if client ID is configured
+  if (!SLACK_CLIENT_ID) {
+    return res.status(500).send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Music Slacker - Configuration Error</title>
+      </head>
+      <body style="font-family: Arial; padding: 40px; text-align: center;">
+        <h1>❌ Configuration Error</h1>
+        <p>Missing SLACK_CLIENT_ID environment variable.</p>
+        <p>Please configure this in your Vercel dashboard.</p>
+      </body>
+      </html>
+    `);
+  }
+  
   const redirectUri = 'https://music-slacker.vercel.app/api/oauth-callback';
   const scopes = 'channels:history,chat:write,links:read';
   const slackAuthUrl = `https://slack.com/oauth/v2/authorize?client_id=${SLACK_CLIENT_ID}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}`;

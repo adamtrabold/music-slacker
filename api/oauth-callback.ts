@@ -5,16 +5,32 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
-import { storeWorkspaceTokens } from '../../src/services/tokenStorage';
+import { storeWorkspaceTokens } from '../src/services/tokenStorage';
 
-const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID!;
-const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET!;
+const SLACK_CLIENT_ID = process.env.SLACK_CLIENT_ID;
+const SLACK_CLIENT_SECRET = process.env.SLACK_CLIENT_SECRET;
 
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  console.log('🔄 OAuth callback triggered');
+  
   try {
+    // Check environment variables
+    if (!SLACK_CLIENT_ID || !SLACK_CLIENT_SECRET) {
+      console.error('❌ Missing required environment variables');
+      return res.status(500).send(`
+        <html>
+          <body style="font-family: Arial; padding: 40px; text-align: center;">
+            <h1>❌ Configuration Error</h1>
+            <p>Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET environment variables.</p>
+            <p>Please configure these in your Vercel dashboard.</p>
+          </body>
+        </html>
+      `);
+    }
+    
     // Get the authorization code from Slack
     const code = req.query.code as string;
     const error = req.query.error as string;
@@ -44,6 +60,7 @@ export default async function handler(
     }
 
     // Exchange the code for an access token
+    console.log('🔄 Exchanging code for access token...');
     const response = await axios.post(
       'https://slack.com/api/oauth.v2.access',
       new URLSearchParams({
@@ -59,9 +76,10 @@ export default async function handler(
     );
 
     const data = response.data;
+    console.log('📦 OAuth response received:', { ok: data.ok, teamId: data.team?.id });
 
     if (!data.ok) {
-      console.error('OAuth token exchange failed:', data.error);
+      console.error('❌ OAuth token exchange failed:', data.error);
       return res.status(400).send(`
         <html>
           <body style="font-family: Arial; padding: 40px; text-align: center;">
@@ -74,6 +92,7 @@ export default async function handler(
     }
 
     // Store the tokens
+    console.log('💾 Storing tokens for team:', data.team.id);
     await storeWorkspaceTokens(data.team.id, {
       botToken: data.access_token,
       teamId: data.team.id,
@@ -138,7 +157,8 @@ export default async function handler(
       </html>
     `);
   } catch (error: any) {
-    console.error('OAuth handler error:', error);
+    console.error('❌ OAuth handler error:', error.message);
+    console.error('Stack trace:', error.stack);
     return res.status(500).send(`
       <html>
         <body style="font-family: Arial; padding: 40px; text-align: center;">
@@ -150,4 +170,3 @@ export default async function handler(
     `);
   }
 }
-

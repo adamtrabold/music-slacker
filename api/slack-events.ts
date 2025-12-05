@@ -112,17 +112,16 @@ export default async function handler(
 
     // Handle event callbacks
     if (type === 'event_callback') {
-      // Respond quickly to Slack to avoid timeout
-      res.status(200).json({ ok: true });
-
-      // Process the event asynchronously
+      // Process the event BEFORE responding
+      // Vercel kills background tasks after response is sent
       try {
         await processEvent(event);
       } catch (error) {
         console.error('Error processing event:', error);
       }
 
-      return;
+      // Respond to Slack after processing completes
+      return res.status(200).json({ ok: true });
     }
 
     // Unknown event type

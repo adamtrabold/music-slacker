@@ -76,7 +76,12 @@ export default async function handler(
     );
 
     const data = response.data;
-    console.log('📦 OAuth response received:', { ok: data.ok, teamId: data.team?.id });
+    console.log('📦 OAuth response received:', { 
+      ok: data.ok, 
+      teamId: data.team?.id,
+      hasRefreshToken: !!data.refresh_token,
+      expiresIn: data.expires_in 
+    });
 
     if (!data.ok) {
       console.error('❌ OAuth token exchange failed:', data.error);
@@ -91,10 +96,17 @@ export default async function handler(
       `);
     }
 
+    // Calculate expiration timestamp if token rotation is enabled
+    const expiresAt = data.expires_in 
+      ? Date.now() + (data.expires_in * 1000) 
+      : undefined;
+
     // Store the tokens
     console.log('💾 Storing tokens for team:', data.team.id);
     await storeWorkspaceTokens(data.team.id, {
       botToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt,
       teamId: data.team.id,
       teamName: data.team.name,
       installedAt: new Date().toISOString(),

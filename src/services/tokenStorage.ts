@@ -22,6 +22,8 @@ const redis = new Redis({
 
 export interface WorkspaceTokens {
   botToken: string;
+  refreshToken?: string;  // For token rotation
+  expiresAt?: number;     // Unix timestamp when token expires
   teamId: string;
   teamName: string;
   installedAt: string;

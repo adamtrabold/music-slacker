@@ -25,6 +25,7 @@ import {
   sanitizeMetadata,
 } from '../src/services/searchUrlGenerator';
 import { getWorkspaceTokens } from '../src/services/tokenStorage';
+import { getValidToken } from '../src/services/tokenRefresh';
 
 // Disable body parser to get raw body for signature verification
 export const config = {
@@ -206,26 +207,35 @@ async function processEvent(event: any, teamId: string): Promise<void> {
   const startTime = Date.now();
   const timing: Record<string, number> = {};
   
-  // Get the bot token for this specific workspace
+  // Get the bot token for this specific workspace (with auto-refresh)
   let botToken = FALLBACK_BOT_TOKEN;
   
   try {
-    const tokens = await getWorkspaceTokens(teamId);
-    if (tokens) {
-      botToken = tokens.botToken;
-      console.log('✅ Using token for workspace:', teamId);
-    } else if (FALLBACK_BOT_TOKEN) {
-      console.log('⚠️ Using fallback token (single workspace mode)');
-    } else {
-      console.error('❌ No token found for workspace:', teamId);
-      return;
-    }
+    // Try to get a valid token (will auto-refresh if expired)
+    botToken = await getValidToken(teamId);
+    console.log('✅ Using valid token for workspace:', teamId);
   } catch (error) {
-    console.error('Error loading workspace tokens:', error);
-    if (!FALLBACK_BOT_TOKEN) {
-      return;
+    console.error('Error getting valid token:', error);
+    
+    // Fall back to checking stored tokens without refresh
+    try {
+      const tokens = await getWorkspaceTokens(teamId);
+      if (tokens) {
+        botToken = tokens.botToken;
+        console.log('⚠️ Using potentially expired token for workspace:', teamId);
+      } else if (FALLBACK_BOT_TOKEN) {
+        console.log('⚠️ Using fallback token (single workspace mode)');
+      } else {
+        console.error('❌ No token found for workspace:', teamId);
+        return;
+      }
+    } catch (fallbackError) {
+      console.error('Error loading workspace tokens:', fallbackError);
+      if (!FALLBACK_BOT_TOKEN) {
+        return;
+      }
+      console.log('Using fallback token due to error');
     }
-    console.log('Using fallback token due to error');
   }
   
   // Initialize Slack client with the workspace-specific token

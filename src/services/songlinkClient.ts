@@ -63,7 +63,7 @@ export async function getCrossPlatformLinks(
         url: musicUrl,
         userCountry: 'US', // Can be made configurable
       },
-      timeout: 15000, // 15 second timeout
+      timeout: 30000, // 30 second timeout (Songlink can be slow)
     });
 
     const { linksByPlatform, entitiesByUniqueId } = response.data;
@@ -96,6 +96,10 @@ export async function getCrossPlatformLinks(
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        console.error('Songlink: Request timeout', { musicUrl });
+        throw new Error('The music service is taking too long to respond. Please try again.');
+      }
       if (error.response?.status === 404) {
         console.error('Songlink: Music not found', { musicUrl });
         return { links: {}, metadata: {} }; // No matches found

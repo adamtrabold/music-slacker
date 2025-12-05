@@ -76,6 +76,16 @@ export function formatMusicLinksMessage(
     }
   }
 
+  // Add "not found" message for direct streaming services that are missing
+  const missingDirectServices = directServices.filter(
+    service => !service.url && service.name !== originalService
+  );
+  
+  if (missingDirectServices.length > 0) {
+    const missingNames = missingDirectServices.map(s => s.name).join(', ');
+    message += `\n\n_Could not find this on: ${missingNames}_`;
+  }
+
   return message;
 }
 

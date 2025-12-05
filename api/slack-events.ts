@@ -121,10 +121,34 @@ export default async function handler(
     const signature = req.headers['x-slack-signature'] as string | undefined;
     const timestamp = req.headers['x-slack-request-timestamp'] as string | undefined;
     
+    // Debug logging to see what we're working with
+    console.log('🔍 Signature Debug:', {
+      receivedSignature: signature,
+      timestamp,
+      rawBodyLength: rawBodyString.length,
+      rawBodyPreview: rawBodyString.substring(0, 100),
+      signingSecret: SLACK_SIGNING_SECRET ? 'SET' : 'MISSING',
+    });
+    
+    // Calculate what the signature should be
+    const sigBasestring = `v0:${timestamp}:${rawBodyString}`;
+    const calculatedSignature = 'v0=' + crypto
+      .createHmac('sha256', SLACK_SIGNING_SECRET)
+      .update(sigBasestring, 'utf8')
+      .digest('hex');
+    
+    console.log('🔍 Signature Comparison:', {
+      received: signature,
+      calculated: calculatedSignature,
+      match: signature === calculatedSignature,
+    });
+    
     if (!verifySlackRequest(signature, timestamp, rawBodyString)) {
-      console.error('Invalid Slack signature');
+      console.error('❌ Invalid Slack signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }
+    
+    console.log('✅ Signature verified successfully');
 
     // Handle event callbacks
     if (type === 'event_callback') {

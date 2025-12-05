@@ -39,8 +39,14 @@ export async function storeWorkspaceTokens(
     await redis.set(key, JSON.stringify(tokens));
     console.log('✅ Stored tokens for workspace:', teamId);
   } catch (error: any) {
+    // Log full error to console for debugging
     console.error('❌ Failed to store tokens:', error.message);
-    throw new Error(`Failed to store tokens: ${error.message}`);
+    
+    // Throw sanitized error that won't expose tokens
+    if (error.message?.includes('WRONGPASS') || error.message?.includes('unauthorized')) {
+      throw new Error('Database authentication failed - invalid credentials');
+    }
+    throw new Error('Failed to store tokens - database error');
   }
 }
 

@@ -159,12 +159,18 @@ export default async function handler(
   } catch (error: any) {
     console.error('❌ OAuth handler error:', error.message);
     console.error('Stack trace:', error.stack);
+    
+    // NEVER expose full error messages - they may contain tokens
+    const safeError = error.message?.includes('WRONGPASS') 
+      ? 'Database connection failed. Please check Redis configuration.'
+      : 'An unexpected error occurred during installation.';
+    
     return res.status(500).send(`
       <html>
         <body style="font-family: Arial; padding: 40px; text-align: center;">
           <h1>❌ Something went wrong</h1>
           <p>Please try again or contact support.</p>
-          <p style="color: #999; font-size: 12px;">Error: ${error.message}</p>
+          <p style="color: #999; font-size: 12px;">${safeError}</p>
         </body>
       </html>
     `);

@@ -138,6 +138,9 @@ export default async function handler(
  * Processes a Slack message event
  */
 async function processEvent(event: any): Promise<void> {
+  const startTime = Date.now();
+  const timing: Record<string, number> = {};
+  
   // Only process message events
   if (event.type !== 'message') {
     return;
@@ -161,6 +164,8 @@ async function processEvent(event: any): Promise<void> {
     return; // No music link found
   }
 
+  timing.linkDetection = Date.now() - startTime;
+  console.log(`⏱️ Link detection: ${timing.linkDetection}ms`);
   console.log('Found music link:', { musicLink, channel });
 
   // Identify which service the link is from
@@ -170,14 +175,24 @@ async function processEvent(event: any): Promise<void> {
     return;
   }
 
+  timing.serviceIdentification = Date.now() - startTime - timing.linkDetection;
+  console.log(`⏱️ Service identification: ${timing.serviceIdentification}ms`);
+
   try {
     // Fetch cross-platform links from Songlink
+    const songlinkStart = Date.now();
     const result = await getCrossPlatformLinks(musicLink);
+    timing.songlinkApi = Date.now() - songlinkStart;
+    console.log(`⏱️ Songlink API call: ${timing.songlinkApi}ms`);
+    
     const { links, metadata } = result;
 
     // Generate search URLs for Qobuz and Bandcamp if not provided by Songlink
+    const searchUrlStart = Date.now();
     const sanitizedMetadata = sanitizeMetadata(metadata);
     const searchUrls = generateSearchUrls(sanitizedMetadata);
+    timing.searchUrlGeneration = Date.now() - searchUrlStart;
+    console.log(`⏱️ Search URL generation: ${timing.searchUrlGeneration}ms`);
 
     // Merge Songlink links with generated search URLs
     // Only add search URLs if Songlink didn't provide them
@@ -188,20 +203,33 @@ async function processEvent(event: any): Promise<void> {
     };
 
     // Format the message
+    const formatStart = Date.now();
     const message = formatMusicLinksMessage(allLinks, originalService);
+    timing.messageFormatting = Date.now() - formatStart;
+    console.log(`⏱️ Message formatting: ${timing.messageFormatting}ms`);
 
     // Post threaded reply
+    const slackPostStart = Date.now();
     await postThreadedReply(channel, ts, message);
+    timing.slackPost = Date.now() - slackPostStart;
+    console.log(`⏱️ Slack post: ${timing.slackPost}ms`);
 
-    console.log('Successfully posted cross-platform links', {
+    timing.total = Date.now() - startTime;
+    
+    console.log('✅ Successfully posted cross-platform links', {
       channel,
       originalService,
       linksFound: Object.keys(allLinks).filter(k => allLinks[k as keyof typeof allLinks]).length,
+      timingBreakdown: timing,
+      totalTime: `${timing.total}ms`,
     });
   } catch (error: any) {
-    console.error('Error processing music link:', {
+    timing.total = Date.now() - startTime;
+    console.error('❌ Error processing music link:', {
       error: error.message,
       musicLink,
+      timingBeforeError: timing,
+      totalTime: `${timing.total}ms`,
     });
 
     // Post error message to thread

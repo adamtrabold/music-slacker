@@ -33,22 +33,6 @@ if (SLACK_BOT_TOKEN) {
 }
 
 /**
- * Get raw body from request stream
- * Using Node.js Stream API as recommended for Vercel functions
- */
-function getRawBody(req: VercelRequest): Promise<string> {
-  return new Promise((resolve) => {
-    let body = '';
-    req.on('data', (data) => {
-      body += data;
-    });
-    req.on('end', () => {
-      resolve(body);
-    });
-  });
-}
-
-/**
  * Verifies that the request came from Slack
  * Using crypto.timingSafeEqual to prevent timing attacks
  */
@@ -108,22 +92,23 @@ export default async function handler(
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // Get the raw body from the stream
-    const rawBodyString = await getRawBody(req);
+    // Vercel automatically parses the JSON body for us
+    const body = req.body;
     
-    // Parse the body
-    const body = JSON.parse(rawBodyString);
+    // For signature verification, we need to recreate the body string
+    // Slack sends JSON without extra whitespace, so we use no spacing
+    const bodyString = JSON.stringify(body);
 
     console.log('Request received:', {
       type: body?.type,
-      bodyLength: rawBodyString.length,
+      bodyLength: bodyString.length,
     });
 
     // Verify request is from Slack
     const signature = req.headers['x-slack-signature'] as string;
     const timestamp = req.headers['x-slack-request-timestamp'] as string;
     
-    if (!verifySlackRequest(signature, timestamp, rawBodyString)) {
+    if (!verifySlackRequest(signature, timestamp, bodyString)) {
       console.error('Invalid Slack signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }

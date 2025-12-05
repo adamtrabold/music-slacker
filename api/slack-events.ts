@@ -94,31 +94,27 @@ export default async function handler(
 
     // Vercel automatically parses the JSON body for us
     const body = req.body;
-    
+    const { type, challenge, event } = body;
+
+    console.log('Request received:', { type });
+
+    // Handle URL verification challenge (no signature verification needed for initial setup)
+    // This is a one-time Slack setup request
+    if (type === 'url_verification') {
+      console.log('✅ URL verification challenge received, responding with challenge');
+      return res.status(200).json({ challenge });
+    }
+
+    // For all other requests, verify signature
     // For signature verification, recreate the body string
     // Slack sends compact JSON, so we use no spacing
     const bodyString = JSON.stringify(body);
-
-    console.log('Request received:', {
-      type: body?.type,
-      bodyLength: bodyString.length,
-    });
-
-    // Verify request is from Slack
     const signature = req.headers['x-slack-signature'] as string | undefined;
     const timestamp = req.headers['x-slack-request-timestamp'] as string | undefined;
     
     if (!verifySlackRequest(signature, timestamp, bodyString)) {
       console.error('Invalid Slack signature');
       return res.status(401).json({ error: 'Invalid signature' });
-    }
-
-    const { type, challenge, event } = body;
-
-    // Handle URL verification challenge
-    if (type === 'url_verification') {
-      console.log('✅ URL verification challenge received, responding with challenge');
-      return res.status(200).json({ challenge });
     }
 
     // Handle event callbacks

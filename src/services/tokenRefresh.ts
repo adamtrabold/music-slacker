@@ -48,6 +48,16 @@ export async function refreshToken(teamId: string): Promise<WorkspaceTokens> {
 
   // Check if we have a refresh token
   if (!currentTokens.refreshToken) {
+    // If token has an expiration but no refresh token, it's an invalid state
+    if (currentTokens.expiresAt) {
+      const timeUntilExpiry = currentTokens.expiresAt - Date.now();
+      if (timeUntilExpiry < REFRESH_BUFFER_MS) {
+        console.error('❌ Token expires soon but no refresh token available');
+        throw new Error('Token is expiring but cannot be refreshed - workspace needs to reinstall app');
+      }
+    }
+    
+    // Long-lived token without expiration - no refresh needed
     console.log('ℹ️ No refresh token - using long-lived token');
     return currentTokens;
   }

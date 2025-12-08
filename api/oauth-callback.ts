@@ -96,14 +96,18 @@ export default async function handler(
       `);
     }
 
-    // Verify team object exists
-    if (!data.team || !data.team.id) {
-      console.error('❌ OAuth response missing team information');
+    // Verify required fields exist
+    if (!data.team?.id || !data.access_token) {
+      console.error('❌ OAuth response missing required fields:', {
+        hasTeam: !!data.team,
+        hasTeamId: !!data.team?.id,
+        hasAccessToken: !!data.access_token
+      });
       return res.status(400).send(`
         <html>
           <body style="font-family: Arial; padding: 40px; text-align: center;">
             <h1>❌ Installation Failed</h1>
-            <p>Missing workspace information from Slack.</p>
+            <p>Incomplete response from Slack. Please try again.</p>
             <p><a href="/">Try again</a></p>
           </body>
         </html>
@@ -115,14 +119,14 @@ export default async function handler(
       ? Date.now() + (data.expires_in * 1000) 
       : undefined;
 
-    // Store the tokens
+    // Store the tokens - safe to use non-null after validation above
     console.log('💾 Storing tokens for team:', data.team.id);
     await storeWorkspaceTokens(data.team.id, {
       botToken: data.access_token,
       refreshToken: data.refresh_token,
       expiresAt,
       teamId: data.team.id,
-      teamName: data.team.name,
+      teamName: data.team.name || 'Unknown Team',
       installedAt: new Date().toISOString(),
     });
 

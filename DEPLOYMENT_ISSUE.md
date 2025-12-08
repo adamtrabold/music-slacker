@@ -57,19 +57,7 @@ import { App } from '@slack/bolt';
 The `bodyParser: false` config might not work in Vercel serverless functions. May need to use `vercel.json` configuration instead.
 
 ### Quick Test
-Test endpoint with properly signed request:
-```bash
-node << 'EOF'
-const crypto = require('crypto');
-const SLACK_SIGNING_SECRET = '27d17606b8eb5bc2fe342fa478f165e6';
-const timestamp = Math.floor(Date.now() / 1000).toString();
-const body = '{"type":"url_verification","challenge":"test123","token":"test"}';
-const sigBasestring = `v0:${timestamp}:${body}`;
-const signature = 'v0=' + crypto.createHmac('sha256', SLACK_SIGNING_SECRET).update(sigBasestring).digest('hex');
-console.log(`curl -X POST https://music-slacker.vercel.app/api/slack-events -H "Content-Type: application/json" -H "X-Slack-Request-Timestamp: ${timestamp}" -H "X-Slack-Signature: ${signature}" -d '${body}'`);
-EOF
-```
-Run the output curl command - it should return `{"challenge":"test123"}` but currently returns `{"error":"Invalid signature"}`
+Test endpoint with properly signed request using your signing secret from environment variables.
 
 ### Files Changed Recently
 1. `api/slack-events.ts` - Main handler with raw body parsing

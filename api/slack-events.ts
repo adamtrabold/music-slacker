@@ -208,7 +208,7 @@ async function processEvent(event: any, teamId: string): Promise<void> {
   const timing: Record<string, number> = {};
   
   // Get the bot token for this specific workspace (with auto-refresh)
-  let botToken = FALLBACK_BOT_TOKEN;
+  let botToken: string | undefined = FALLBACK_BOT_TOKEN;
   
   try {
     // Try to get a valid token (will auto-refresh if expired)
@@ -225,6 +225,7 @@ async function processEvent(event: any, teamId: string): Promise<void> {
         console.log('⚠️ Using potentially expired token for workspace:', teamId);
       } else if (FALLBACK_BOT_TOKEN) {
         console.log('⚠️ Using fallback token (single workspace mode)');
+        botToken = FALLBACK_BOT_TOKEN;
       } else {
         console.error('❌ No token found for workspace:', teamId);
         return;
@@ -235,11 +236,18 @@ async function processEvent(event: any, teamId: string): Promise<void> {
         return;
       }
       console.log('Using fallback token due to error');
+      botToken = FALLBACK_BOT_TOKEN;
     }
   }
   
+  // Verify we have a token before proceeding
+  if (!botToken) {
+    console.error('❌ No bot token available for workspace:', teamId);
+    return;
+  }
+  
   // Initialize Slack client with the workspace-specific token
-  initializeSlackClient(botToken!);
+  initializeSlackClient(botToken);
   
   // Only process message events
   if (event.type !== 'message') {

@@ -179,7 +179,7 @@ export default async function handler(
           <div class="container">
             <div class="emoji">🎉</div>
             <h1>Success!</h1>
-            <p><strong>Music Slacker</strong> has been installed to <strong>${data.team.name}</strong></p>
+            <p><strong>Music Slacker</strong> has been installed to <strong>${data.team.name || 'Unknown Team'}</strong></p>
             <p>Share any music link in a channel and the bot will reply with links to all platforms!</p>
             <a href="slack://open">Open Slack</a>
           </div>

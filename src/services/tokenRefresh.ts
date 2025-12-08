@@ -34,6 +34,11 @@ export function needsRefresh(tokens: WorkspaceTokens): boolean {
 export async function refreshToken(teamId: string): Promise<WorkspaceTokens> {
   console.log('🔄 Refreshing token for team:', teamId);
   
+  // Check environment variables first (fail fast)
+  if (!SLACK_CLIENT_ID || !SLACK_CLIENT_SECRET) {
+    throw new Error('Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET');
+  }
+  
   // Get current tokens
   const currentTokens = await getWorkspaceTokens(teamId);
   
@@ -45,11 +50,6 @@ export async function refreshToken(teamId: string): Promise<WorkspaceTokens> {
   if (!currentTokens.refreshToken) {
     console.log('ℹ️ No refresh token - using long-lived token');
     return currentTokens;
-  }
-
-  // Check environment variables
-  if (!SLACK_CLIENT_ID || !SLACK_CLIENT_SECRET) {
-    throw new Error('Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET');
   }
 
   try {

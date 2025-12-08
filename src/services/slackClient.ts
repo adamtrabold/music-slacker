@@ -6,15 +6,20 @@
 import { WebClient } from '@slack/web-api';
 
 let slackClient: WebClient | null = null;
+let currentToken: string | null = null;
 
 /**
  * Initializes the Slack Web API client
+ * Always creates a new client when token changes to ensure fresh credentials
  * @param token - Slack bot token
  * @returns Initialized Slack WebClient
  */
 export function initializeSlackClient(token: string): WebClient {
-  if (!slackClient) {
+  // Always create new client if token changed (handles token refresh)
+  if (!slackClient || currentToken !== token) {
     slackClient = new WebClient(token);
+    currentToken = token;
+    console.log('🔄 Slack client initialized with', token === currentToken && slackClient ? 'existing' : 'new', 'token');
   }
   return slackClient;
 }

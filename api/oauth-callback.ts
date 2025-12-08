@@ -96,6 +96,20 @@ export default async function handler(
       `);
     }
 
+    // Verify team object exists
+    if (!data.team || !data.team.id) {
+      console.error('❌ OAuth response missing team information');
+      return res.status(400).send(`
+        <html>
+          <body style="font-family: Arial; padding: 40px; text-align: center;">
+            <h1>❌ Installation Failed</h1>
+            <p>Missing workspace information from Slack.</p>
+            <p><a href="/">Try again</a></p>
+          </body>
+        </html>
+      `);
+    }
+
     // Calculate expiration timestamp if token rotation is enabled
     const expiresAt = data.expires_in 
       ? Date.now() + (data.expires_in * 1000) 

@@ -15,11 +15,14 @@ let currentToken: string | null = null;
  * @returns Initialized Slack WebClient
  */
 export function initializeSlackClient(token: string): WebClient {
+  // Check if we need to create a new client (token changed or first time)
+  const tokenChanged = currentToken !== token;
+  
   // Always create new client if token changed (handles token refresh)
-  if (!slackClient || currentToken !== token) {
+  if (!slackClient || tokenChanged) {
+    console.log('🔄 Slack client', tokenChanged ? 'recreated with new token' : 'created for first time');
     slackClient = new WebClient(token);
     currentToken = token;
-    console.log('🔄 Slack client initialized with', token === currentToken && slackClient ? 'existing' : 'new', 'token');
   }
   return slackClient;
 }

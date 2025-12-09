@@ -39,6 +39,10 @@ export async function refreshToken(teamId: string): Promise<WorkspaceTokens> {
     throw new Error('Missing SLACK_CLIENT_ID or SLACK_CLIENT_SECRET');
   }
   
+  // Type narrowing: After the check above, these are guaranteed to be strings
+  const clientId: string = SLACK_CLIENT_ID;
+  const clientSecret: string = SLACK_CLIENT_SECRET;
+  
   // Get current tokens
   const currentTokens = await getWorkspaceTokens(teamId);
   
@@ -68,8 +72,8 @@ export async function refreshToken(teamId: string): Promise<WorkspaceTokens> {
     const response = await axios.post(
       'https://slack.com/api/oauth.v2.access',
       new URLSearchParams({
-        client_id: SLACK_CLIENT_ID,
-        client_secret: SLACK_CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
         grant_type: 'refresh_token',
         refresh_token: currentTokens.refreshToken,
       }).toString(),

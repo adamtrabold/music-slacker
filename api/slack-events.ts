@@ -225,7 +225,7 @@ async function processEvent(event: any, teamId: string): Promise<void> {
         console.log('⚠️ Using potentially expired token for workspace:', teamId);
       } else if (FALLBACK_BOT_TOKEN) {
         console.log('⚠️ Using fallback token (single workspace mode)');
-        botToken = FALLBACK_BOT_TOKEN;
+        // botToken already set to FALLBACK_BOT_TOKEN on line 211
       } else {
         console.error('❌ No token found for workspace:', teamId);
         return;
@@ -236,7 +236,7 @@ async function processEvent(event: any, teamId: string): Promise<void> {
         return;
       }
       console.log('Using fallback token due to error');
-      botToken = FALLBACK_BOT_TOKEN;
+      // botToken already set to FALLBACK_BOT_TOKEN on line 211
     }
   }
   

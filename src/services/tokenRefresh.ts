@@ -52,8 +52,9 @@ export async function refreshToken(teamId: string): Promise<WorkspaceTokens> {
     if (currentTokens.expiresAt) {
       const timeUntilExpiry = currentTokens.expiresAt - Date.now();
       if (timeUntilExpiry < REFRESH_BUFFER_MS) {
-        console.error('❌ Token expires soon but no refresh token available');
-        throw new Error('Token is expiring but cannot be refreshed - workspace needs to reinstall app');
+        const isExpired = timeUntilExpiry < 0;
+        console.error(isExpired ? '❌ Token already expired' : '❌ Token expires soon', 'but no refresh token available');
+        throw new Error(`Token ${isExpired ? 'has expired' : 'is expiring'} but cannot be refreshed - workspace needs to reinstall app`);
       }
     }
     

@@ -1,3 +1,5 @@
+[Status: App currently deactivated because I couldn't get permission to use it in my main Slack, and therefore was inactive. But it works when the app is activated!]
+
 # Music Slacker
 
 A Slack bot that automatically finds and posts music links across all streaming services when someone shares a music link in your channel.
